@@ -1,0 +1,12 @@
+django
+djangorestframework
+django-cors-headers
+mysqlclient
+django-rest-auth
+django-allauth
+pyjwt
+whitenoise
+gunicorn
+uvicorn
+dj-database-url
+python-dotenv
