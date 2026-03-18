@@ -1,6 +1,7 @@
 class LeaveModel {
   final int id;
-  final String studentName;
+  final String studentName; // This will hold the Full Name
+  final String vmlId;       // This will hold the VML ID
   final String reason;
   final String destination;
   final DateTime startDate;
@@ -13,6 +14,7 @@ class LeaveModel {
   LeaveModel({
     required this.id,
     required this.studentName,
+    required this.vmlId,
     required this.reason,
     required this.destination,
     required this.startDate,
@@ -26,7 +28,8 @@ class LeaveModel {
   factory LeaveModel.fromJson(Map<String, dynamic> json) {
     return LeaveModel(
       id: json['id'],
-      studentName: json['student_name'] ?? '',
+      studentName: json['student_full_name'] ?? json['student_name'] ?? '',
+      vmlId: json['vml_id'] ?? json['student_name'] ?? '',
       reason: json['reason'] ?? '',
       destination: json['destination'] ?? '',
       startDate: DateTime.parse(json['start_date']),

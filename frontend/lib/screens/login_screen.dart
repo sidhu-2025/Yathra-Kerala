@@ -20,33 +20,41 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  String _selectedRole = 'STUDENT';
+
+  final List<Map<String, String>> _roles = [
+    {'value': 'STUDENT', 'label': 'Student', 'icon': 'person_outline'},
+    {'value': 'PARENT', 'label': 'Parent', 'icon': 'family_restroom'},
+    {'value': 'WARDEN', 'label': 'Warden', 'icon': 'admin_panel_settings'},
+    {'value': 'SECURITY', 'label': 'Security', 'icon': 'security'},
+  ];
 
   void _handleLogin() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    // Trim whitespace and convert to lowercase so students can enter
-    // their ID in any case (e.g., VML23CS094 → vml23cs094)
     final username = _usernameController.text.trim().toLowerCase();
     final password = _passwordController.text;
 
-    bool success = await auth.login(username, password);
+    bool success = await auth.login(username, password, _selectedRole);
 
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.lastError ?? 'Login failed')),
+        SnackBar(
+          content: Text(auth.lastError ?? 'Login failed'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
-    // On success, the Consumer in MainApp (main.dart) automatically
-    // rebuilds and navigates to the correct dashboard.
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.jpg'),
-            fit: BoxFit.cover,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.indigo[900]!, Colors.blue[800]!],
           ),
         ),
         child: BackdropFilter(
@@ -95,12 +103,53 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                     ),
                     const SizedBox(height: 32),
+                    // Role Selector
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.3)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedRole,
+                          dropdownColor: Colors.grey[900],
+                          isExpanded: true,
+                          icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                          items: _roles.map((role) {
+                            IconData iconData;
+                            switch (role['icon']) {
+                              case 'family_restroom': iconData = Icons.family_restroom; break;
+                              case 'admin_panel_settings': iconData = Icons.admin_panel_settings; break;
+                              case 'security': iconData = Icons.security; break;
+                              default: iconData = Icons.person_outline;
+                            }
+                            return DropdownMenuItem<String>(
+                              value: role['value'],
+                              child: Row(
+                                children: [
+                                  Icon(iconData, color: Colors.white70, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(role['label']!),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) setState(() => _selectedRole = value);
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _usernameController,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        labelText: 'Student ID / Username',
-                        hintText: 'e.g. vml23cs094',
+                        labelText: 'Username or Email',
+                        hintText: 'e.g. vml23cs094 or user@email.com',
                         hintStyle: const TextStyle(color: Colors.white30),
                         labelStyle: const TextStyle(color: Colors.white70),
                         prefixIcon: const Icon(Icons.person_outline, color: Colors.white70),

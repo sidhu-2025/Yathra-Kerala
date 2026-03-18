@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+db.sqlite3
+backend/__pycache__/
+backend/venv/
+backend/.env
+backend/db.sqlite3
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins
+frontend/.packages
+
+# IDEs
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# Logs
+*.log
+frontend/build_log.txt
+frontend/build_error.log
+frontend/build_error.txt
+frontend/flutter_01.log
+
+# OS
+.DS_Store
+Thumbs.db

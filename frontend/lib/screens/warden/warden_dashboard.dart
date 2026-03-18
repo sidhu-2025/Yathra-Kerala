@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/leave_provider.dart';
 import '../attendance_history_screen.dart';
@@ -9,6 +8,9 @@ import 'vacating_approval_screen.dart';
 import 'student_management_screen.dart';
 import 'complaint_management_screen.dart';
 import '../change_password_screen.dart';
+import 'attendance_report_screen.dart';
+import 'warden_pending_leaves_screen.dart';
+import 'warden_leave_history_screen.dart';
 
 class WardenDashboard extends StatefulWidget {
   const WardenDashboard({super.key});
@@ -17,13 +19,10 @@ class WardenDashboard extends StatefulWidget {
   State<WardenDashboard> createState() => _WardenDashboardState();
 }
 
-class _WardenDashboardState extends State<WardenDashboard> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
+class _WardenDashboardState extends State<WardenDashboard> {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
@@ -35,207 +34,171 @@ class _WardenDashboardState extends State<WardenDashboard> with SingleTickerProv
   }
 
   @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+    final user = auth.user;
 
-  void _approveLeave(int id) async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final provider = Provider.of<LeaveProvider>(context, listen: false);
-    final success = await provider.approveByWarden(auth.user!, id);
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Leave approved — QR code generated')),
-      );
-    }
-  }
-
-  void _rejectLeave(int id) async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final provider = Provider.of<LeaveProvider>(context, listen: false);
-    final success = await provider.rejectByWarden(auth.user!, id);
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Leave rejected')),
-      );
-    }
-  }
-
-  Widget _buildLeaveList(List leaves, {bool showActions = false}) {
-    if (leaves.isEmpty) {
-      return const Center(child: Text('No leave requests'));
-    }
-    return ListView.builder(
-      itemCount: leaves.length,
-      itemBuilder: (context, index) {
-        final leave = leaves[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(leave.studentName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Chip(
-                      label: Text(leave.status, style: const TextStyle(fontSize: 12)),
-                      backgroundColor: leave.status == 'APPROVED'
-                          ? Colors.green[100]
-                          : leave.status == 'REJECTED'
-                              ? Colors.red[100]
-                              : Colors.orange[100],
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: RefreshIndicator(
+        onRefresh: _onRefresh,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              expandedHeight: 200.0,
+              floating: false,
+              pinned: true,
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.indigo[900],
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.indigo[900]!, Colors.blue[800]!],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text('Reason: ${leave.reason}'),
-                if (leave.destination.isNotEmpty) Text('Destination: ${leave.destination}'),
-                Text('${DateFormat('MMM d').format(leave.startDate)} - ${DateFormat('MMM d').format(leave.endDate)}'),
-                Text('Parent Approved: ${leave.parentApproved ? "Yes" : "No"}'),
-                if (showActions && leave.status == 'PENDING_WARDEN')
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 60, left: 24, right: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ElevatedButton.icon(
-                          onPressed: () => _approveLeave(leave.id),
-                          icon: const Icon(Icons.check, size: 18),
-                          label: const Text('Approve'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        const CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.white24,
+                          child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 32),
                         ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: () => _rejectLeave(leave.id),
-                          icon: const Icon(Icons.close, size: 18),
-                          label: const Text('Reject'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        const SizedBox(height: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Warden Portal,',
+                              style: TextStyle(color: Colors.white70, fontSize: 16),
+                            ),
+                            Text(
+                              user?.fullName ?? 'Warden',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (user != null)
+                              Text(
+                                user.email.isNotEmpty ? user.email : user.username,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),
                   ),
+                ),
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  onPressed: () => auth.logout(),
+                ),
               ],
             ),
-          ),
-        );
-      },
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Management Actions',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
+                    const SizedBox(height: 16),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.5,
+                      children: [
+                        _buildActionCard(
+                          'Pending Leaves',
+                          Icons.pending_actions,
+                          Colors.orange,
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WardenPendingLeavesScreen())),
+                        ),
+                         _buildActionCard(
+                          'Leave History',
+                          Icons.history,
+                          Colors.indigo,
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WardenLeaveHistoryScreen())),
+                        ),
+                        _buildActionCard('Attendance', Icons.assignment_ind, Colors.blue, 
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceScreen()))),
+                        _buildActionCard('Attendance Hist', Icons.history_toggle_off, Colors.indigo, 
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()))),
+                        _buildActionCard('Vacating', Icons.exit_to_app, Colors.orange, 
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VacatingApprovalScreen()))),
+                        _buildActionCard('Students', Icons.people, Colors.teal, 
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentManagementScreen()))),
+                        _buildActionCard('Complaints', Icons.report_problem, Colors.red, 
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ComplaintManagementScreen()))),
+                        _buildActionCard('Password', Icons.password, Colors.green, 
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChangePasswordScreen()))),
+                        _buildActionCard('Report', Icons.bar_chart, Colors.purple, 
+                          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceReportScreen()))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+          ],
+        ),
+      ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Warden Dashboard'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Pending'),
-            Tab(text: 'All Leaves'),
-          ],
+  Future<void> _onRefresh() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.user != null) {
+      await Provider.of<LeaveProvider>(context, listen: false).fetchLeaves(auth.user!);
+    }
+  }
+
+  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.2)),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              final user = Provider.of<AuthProvider>(context, listen: false).user;
-              if (user != null) {
-                Provider.of<LeaveProvider>(context, listen: false).fetchLeaves(user);
-              }
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => Provider.of<AuthProvider>(context, listen: false).logout(),
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.indigo),
-              child: Text('Warden Panel',
-                  style: TextStyle(color: Colors.white, fontSize: 24)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.assignment_ind),
-              title: const Text('Mark Attendance'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const AttendanceScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text('Attendance History'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.exit_to_app),
-              title: const Text('Vacating Requests'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const VacatingApprovalScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.people),
-              title: const Text('Student Management'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const StudentManagementScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.report_problem),
-              title: const Text('Complaint Management'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const ComplaintManagementScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.password),
-              title: const Text('Change Password'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ChangePasswordScreen()),
-                );
-              },
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
-      ),
-      body: Consumer<LeaveProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final pending = provider.leaves.where((l) => l.status == 'PENDING_WARDEN').toList();
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _buildLeaveList(pending, showActions: true),
-              _buildLeaveList(provider.leaves),
-            ],
-          );
-        },
       ),
     );
   }

@@ -16,8 +16,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _parentUsernameController = TextEditingController();
+  final _deptController = TextEditingController();
+  final _roomController = TextEditingController();
+  final _admissionController = TextEditingController();
+  final _parentNameController = TextEditingController();
+  final _parentEmailController = TextEditingController();
+  final _semesterController = TextEditingController();
   String _selectedRole = 'STUDENT';
+  String _selectedGender = 'MALE';
   bool _isLoading = false;
 
   final List<String> _roles = ['STUDENT', 'PARENT', 'WARDEN', 'SECURITY'];
@@ -55,7 +61,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         password: _passwordController.text,
         role: _selectedRole,
         phoneNumber: _phoneController.text,
-        parentUsername: _selectedRole == 'STUDENT' ? _parentUsernameController.text : null,
+        department: _selectedRole == 'STUDENT' ? _deptController.text : null,
+        roomNumber: _selectedRole == 'STUDENT' ? _roomController.text : null,
+        gender: _selectedRole == 'STUDENT' ? _selectedGender : null,
+        admissionNumber: _selectedRole == 'STUDENT' ? _admissionController.text : null,
+        semester: _selectedRole == 'STUDENT' ? int.tryParse(_semesterController.text) : null,
+        parentName: _selectedRole == 'STUDENT' ? _parentNameController.text : null,
+        parentEmail: _selectedRole == 'STUDENT' ? _parentEmailController.text : null,
+        studentUsername: _selectedRole == 'PARENT' ? _admissionController.text : null,
       );
 
       setState(() => _isLoading = false);
@@ -81,10 +94,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/background.jpg'),
-            fit: BoxFit.cover,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.indigo[900]!, Colors.blue[800]!],
           ),
         ),
         child: BackdropFilter(
@@ -180,10 +194,65 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               if (_selectedRole == 'STUDENT') ...[
                                 const SizedBox(height: 16),
                                 TextFormField(
-                                  controller: _parentUsernameController,
+                                  controller: _admissionController,
                                   style: const TextStyle(color: Colors.white),
-                                  decoration: _glassInputDecoration('Parent Username', Icons.family_restroom_outlined),
-                                  validator: (value) => value!.isEmpty ? 'Parent username required' : null,
+                                  decoration: _glassInputDecoration('Admission Number', Icons.numbers_outlined),
+                                  validator: (value) => value!.isEmpty ? 'Admission number required' : null,
+                                ),
+                                const SizedBox(height: 16),
+                                DropdownButtonFormField<String>(
+                                  value: _selectedGender,
+                                  dropdownColor: Colors.grey[800],
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _glassInputDecoration('Gender', Icons.wc_outlined),
+                                  items: ['MALE', 'FEMALE', 'OTHER'].map((gender) {
+                                    return DropdownMenuItem(
+                                      value: gender,
+                                      child: Text(gender[0] + gender.substring(1).toLowerCase()),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) => setState(() => _selectedGender = value!),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _deptController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _glassInputDecoration('Department', Icons.school_outlined),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _semesterController,
+                                  keyboardType: TextInputType.number,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _glassInputDecoration('Semester', Icons.calendar_view_day_outlined),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _roomController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _glassInputDecoration('Room Number', Icons.room_outlined),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _parentNameController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _glassInputDecoration('Parent Name', Icons.person_outline),
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _parentEmailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _glassInputDecoration('Parent Email', Icons.email_outlined),
+                                ),
+                              ],
+                              if (_selectedRole == 'PARENT') ...[
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _admissionController, // Reusing admissionController for Student ID
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: _glassInputDecoration('Student ID (VML Number)', Icons.school_outlined),
+                                  validator: (value) => value!.isEmpty ? 'Student ID required for linking' : null,
                                 ),
                               ],
                               const SizedBox(height: 32),

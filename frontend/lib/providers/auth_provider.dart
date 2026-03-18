@@ -41,20 +41,25 @@ class AuthProvider with ChangeNotifier {
 
   final String baseUrl = ApiConstants.baseUrl;
 
-  Future<bool> login(String username, String password) async {
+  Future<bool> login(String username, String password, String role) async {
     _isLoading = true;
+    _lastError = null;
     notifyListeners();
 
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/login/'),
-        body: {'username': username, 'password': password},
+        body: {
+          'username': username,
+          'password': password,
+          'role': role,
+        },
       );
 
       if (response.statusCode == 200) {
         final userData = json.decode(response.body);
         _user = UserModel.fromJson(userData);
-        await _saveUser(userData);
+        await _saveUser(_user!.toJson());
         _isLoading = false;
         notifyListeners();
         return true;
@@ -80,6 +85,14 @@ class AuthProvider with ChangeNotifier {
     required String role,
     String? phoneNumber,
     String? parentUsername,
+    String? department,
+    String? roomNumber,
+    String? gender,
+    String? admissionNumber,
+    int? semester,
+    String? parentName,
+    String? parentEmail,
+    String? studentUsername,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -95,6 +108,14 @@ class AuthProvider with ChangeNotifier {
           'role': role,
           'phone_number': phoneNumber ?? '',
           'parent_username': parentUsername ?? '',
+          'student_username': studentUsername ?? '',
+          'department': department ?? '',
+          'room_number': roomNumber ?? '',
+          'gender': gender ?? '',
+          'admission_number': admissionNumber ?? '',
+          'semester': semester,
+          'parent_name': parentName ?? '',
+          'parent_email': parentEmail ?? '',
         }),
       );
 

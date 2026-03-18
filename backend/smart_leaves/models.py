@@ -12,6 +12,19 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.STUDENT)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
+    
+    # New Profile Fields
+    photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
+    department = models.CharField(max_length=100, blank=True, null=True)
+    year_of_study = models.IntegerField(blank=True, null=True)
+    room_number = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    gender = models.CharField(max_length=10, choices=[('MALE', 'Male'), ('FEMALE', 'Female'), ('OTHER', 'Other')], blank=True, null=True)
+    admission_number = models.CharField(max_length=50, blank=True, null=True)
+    semester = models.IntegerField(blank=True, null=True)
+    parent_name = models.CharField(max_length=255, blank=True, null=True)
+    parent_email = models.EmailField(blank=True, null=True)
+
     # For students, link to their parent
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, limit_choices_to={'role': Role.PARENT})
     requested_parent_username = models.CharField(max_length=150, blank=True, null=True)
@@ -71,6 +84,8 @@ class Attendance(models.Model):
     date = models.DateField(auto_now_add=True)
     is_present = models.BooleanField(default=False)
     marked_by = models.ForeignKey(UserProfile, on_delete=models.SET_NULL, null=True, related_name='attendances_marked', limit_choices_to={'role': Role.WARDEN}, db_constraint=False)
+    hours_absent = models.IntegerField(default=0)
+    hours_present = models.IntegerField(default=0)
 
     class Meta:
         unique_together = ('student', 'date')
@@ -106,3 +121,12 @@ class VacatingForm(models.Model):
 
     def __str__(self):
         return f"Vacating Form {self.id} - {self.student.user.username}"
+
+class StudentLocation(models.Model):
+    student = models.OneToOneField(UserProfile, on_delete=models.CASCADE, limit_choices_to={'role': Role.STUDENT}, related_name='location', db_constraint=False)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Location of {self.student.user.username} - ({self.latitude}, {self.longitude})"

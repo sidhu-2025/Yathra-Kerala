@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'add_student_screen.dart';
+import '../../utils/ui_utils.dart';
 
 class StudentManagementScreen extends StatefulWidget {
   const StudentManagementScreen({super.key});
@@ -13,12 +15,20 @@ class StudentManagementScreen extends StatefulWidget {
 
 class _StudentManagementScreenState extends State<StudentManagementScreen> {
   List<dynamic> _students = [];
+  List<dynamic> _filteredStudents = [];
   bool _isLoading = true;
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchStudents();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _fetchStudents() async {
@@ -33,12 +43,25 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
         final List<dynamic> allProfiles = json.decode(response.body);
         setState(() {
           _students = allProfiles.where((p) => p['role'] == 'STUDENT').toList();
+          _filteredStudents = List.from(_students);
           _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _filterSearch(String query) {
+    setState(() {
+      _filteredStudents = _students.where((student) {
+        final username = student['user']['username']?.toString().toLowerCase() ?? '';
+        final firstName = student['user']['first_name']?.toString().toLowerCase() ?? '';
+        final lastName = student['user']['last_name']?.toString().toLowerCase() ?? '';
+        final fullName = '$firstName $lastName'.trim();
+        return username.contains(query.toLowerCase()) || fullName.contains(query.toLowerCase());
+      }).toList();
+    });
   }
 
   void _deactivateStudent(int profileId) async {
@@ -50,42 +73,98 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Student deactivated successfully')),
-        );
-        _fetchStudents();
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student deactivated successfully')));
+           _fetchStudents();
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error deactivating student')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error deactivating student')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Student Management')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: _students.length,
-              itemBuilder: (context, index) {
-                final student = _students[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.person)),
-                    title: Text(student['user']['username'] ?? 'No Username'),
-                    subtitle: Text('Phone: ${student['phone_number'] ?? 'N/A'}'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.person_remove, color: Colors.red),
-                      onPressed: () => _showDeactivateDialog(student['id'], student['user']['username']),
-                    ),
-                  ),
-                );
-              },
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text('Student Management'),
+        backgroundColor: Colors.indigo[900],
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddStudentScreen()),
+          );
+          if (result == true) _fetchStudents();
+        },
+        backgroundColor: Colors.indigo[900],
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.indigo[900],
+            child: TextField(
+              controller: _searchController,
+              onChanged: _filterSearch,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Search by ID or Name...',
+                hintStyle: const TextStyle(color: Colors.white70),
+                prefixIcon: const Icon(Icons.search, color: Colors.white70),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.1),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
             ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredStudents.isEmpty
+                    ? const Center(child: Text('No students found'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _filteredStudents.length,
+                        itemBuilder: (context, index) {
+                          final student = _filteredStudents[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(color: Colors.grey[200]!),
+                            ),
+                            elevation: 0,
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.indigo[50],
+                                child: Text(
+                                  student['user']['username']?.substring(0, 1).toUpperCase() ?? 'S',
+                                  style: TextStyle(color: Colors.indigo[900], fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              title: Text(
+                                student['user']['username'] ?? 'No Username',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(student['phone_number'] ?? 'No Phone'),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.person_remove, color: Colors.red),
+                                onPressed: () => _showDeactivateDialog(student['id'], student['user']['username']),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
     );
   }
 

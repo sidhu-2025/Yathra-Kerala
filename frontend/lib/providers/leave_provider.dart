@@ -57,6 +57,8 @@ class LeaveProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final List data = json.decode(response.body);
         _leaves = data.map((json) => LeaveModel.fromJson(json)).toList();
+        // Sort by ID descending (newest first)
+        _leaves.sort((a, b) => b.id.compareTo(a.id));
       }
     } catch (e) {
       print('Fetch leaves error: $e');
@@ -88,6 +90,27 @@ class LeaveProvider with ChangeNotifier {
       }
     } catch (e) {
       print('Submit leave error: $e');
+    }
+    return false;
+  }
+
+  Future<bool> updateLeave(UserModel user, int leaveId, Map<String, dynamic> data) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/leaves/$leaveId/'),
+        headers: {
+          'Authorization': 'Token ${user.token}',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(data),
+      );
+
+      if (response.statusCode == 200) {
+        fetchLeaves(user);
+        return true;
+      }
+    } catch (e) {
+      print('Update leave error: $e');
     }
     return false;
   }

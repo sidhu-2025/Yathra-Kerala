@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/leave_provider.dart';
+import 'package:intl/intl.dart';
 
 class RequestLeaveScreen extends StatefulWidget {
   const RequestLeaveScreen({super.key});
@@ -72,9 +73,9 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: const Text('Start Date'),
-                subtitle: Text(_startDate.toString().split(' ')[0]),
+                leading: const Icon(Icons.outbound_outlined, color: Colors.orange),
+                title: const Text('Exit Date & Time'),
+                subtitle: Text(DateFormat('MMM d, yyyy - hh:mm a').format(_startDate)),
                 onTap: () async {
                   final d = await showDatePicker(
                     context: context,
@@ -82,13 +83,24 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
                     firstDate: DateTime.now(),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
-                  if (d != null) setState(() => _startDate = d);
+                  if (d != null && mounted) {
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_startDate),
+                    );
+                    if (t != null) {
+                      setState(() {
+                        _startDate = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+                      });
+                    }
+                  }
                 },
               ),
+              const SizedBox(height: 8),
               ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: const Text('End Date'),
-                subtitle: Text(_endDate.toString().split(' ')[0]),
+                leading: const Icon(Icons.login_outlined, color: Colors.green),
+                title: const Text('Return Date & Time'),
+                subtitle: Text(DateFormat('MMM d, yyyy - hh:mm a').format(_endDate)),
                 onTap: () async {
                   final d = await showDatePicker(
                     context: context,
@@ -96,7 +108,17 @@ class _RequestLeaveScreenState extends State<RequestLeaveScreen> {
                     firstDate: _startDate,
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
-                  if (d != null) setState(() => _endDate = d);
+                  if (d != null && mounted) {
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_endDate),
+                    );
+                    if (t != null) {
+                      setState(() {
+                        _endDate = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+                      });
+                    }
+                  }
                 },
               ),
               const SizedBox(height: 24),

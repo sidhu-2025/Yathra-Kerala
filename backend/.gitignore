@@ -1,0 +1,27 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+.env
+
+# Static files
+staticfiles/
+
+# Build and IDE
+.vscode/
+.idea/
+.DS_Store
+*.swp
+node_modules/
+
+# Python environments
+venv/
+env/
+.env/
+build/
+dist/
+*.egg-info/
