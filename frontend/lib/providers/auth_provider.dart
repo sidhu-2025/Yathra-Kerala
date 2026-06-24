@@ -93,6 +93,7 @@ class AuthProvider with ChangeNotifier {
     String? parentName,
     String? parentEmail,
     String? studentUsername,
+    String? fullName,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -116,6 +117,7 @@ class AuthProvider with ChangeNotifier {
           'semester': semester,
           'parent_name': parentName ?? '',
           'parent_email': parentEmail ?? '',
+          'full_name': fullName ?? '',
         }),
       );
 

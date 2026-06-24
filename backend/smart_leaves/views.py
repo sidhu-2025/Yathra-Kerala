@@ -180,6 +180,8 @@ class LeaveRequestViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
         leave.status = 'REJECTED'
         leave.save()
+        # Send SMS to parent about the warden's rejection
+        send_leave_sms(leave, template_type='REJECTION')
         return Response({'status': 'Rejected by warden'})
 
     @action(detail=False, methods=['get'], url_path='verify/(?P<token>[^/.]+)')
@@ -531,6 +533,28 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         profile.user.is_active = False
         profile.user.save()
         return Response({'status': 'Student deactivated successfully'})
+
+    @action(detail=True, methods=['post'])
+    def update_student_name(self, request, pk=None):
+        if request.user.profile.role != Role.WARDEN:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        full_name = request.data.get('full_name', '').strip()
+        if not full_name:
+            return Response({'error': 'Full name is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        profile = self.get_object()
+        user = profile.user
+        
+        name_parts = full_name.split(' ', 1)
+        user.first_name = name_parts[0]
+        if len(name_parts) > 1:
+            user.last_name = name_parts[1]
+        else:
+            user.last_name = ''
+        
+        user.save()
+        return Response({'status': 'Student name updated successfully'})
 
 class PasswordResetView(APIView):
     permission_classes = [permissions.AllowAny]

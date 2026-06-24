@@ -81,21 +81,33 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   }
 
   void _processWardenData(List<dynamic> data) {
-    // Group records by student
-    Map<String, List<dynamic>> grouped = {};
+    // Group records by student username (unique)
+    Map<String, Map<String, dynamic>> grouped = {};
     for (var item in data) {
-      String name = item['student_name'] ?? 'Unknown';
-      grouped.putIfAbsent(name, () => []).add(item);
+      String username = item['student_name'] ?? 'Unknown';
+      String fullName = item['student_full_name'] ?? username;
+      
+      if (!grouped.containsKey(username)) {
+        grouped[username] = {
+          'username': username,
+          'full_name': fullName,
+          'records': [],
+        };
+      }
+      grouped[username]!['records'].add(item);
     }
 
     _studentSummaries = grouped.entries.map((e) {
-      int present = e.value.where((v) => v['is_present']).length;
-      int total = e.value.length;
+      final val = e.value;
+      final records = val['records'] as List<dynamic>;
+      int present = records.where((v) => v['is_present']).length;
+      int total = records.length;
       return {
-        'name': e.key,
+        'name': val['full_name'],
+        'username': val['username'],
         'present': present,
         'total': total,
-        'records': e.value,
+        'records': records,
       };
     }).toList();
     
@@ -105,7 +117,12 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
   void _filterSearch(String query) {
     setState(() {
       _filteredSummaries = _studentSummaries
-          .where((s) => s['name'].toString().toLowerCase().contains(query.toLowerCase()))
+          .where((s) {
+            final name = s['name'].toString().toLowerCase();
+            final username = s['username'].toString().toLowerCase();
+            final q = query.toLowerCase();
+            return name.contains(q) || username.contains(q);
+          })
           .toList();
     });
   }
@@ -173,16 +190,22 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.indigo[50],
-                          child: Text(student['name'].substring(0, 1).toUpperCase()),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.indigo[50],
+                            child: Text((student['name'] ?? 'S').substring(0, 1).toUpperCase()),
+                          ),
+                          title: Text(student['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(student['username'], style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                              Text('Present: ${student['present']} / ${student['total']}'),
+                            ],
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => _selectStudent(student),
                         ),
-                        title: Text(student['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Present: ${student['present']} / ${student['total']}'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _selectStudent(student),
-                      ),
                     );
                   },
                 ),

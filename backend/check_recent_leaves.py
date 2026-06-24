@@ -1,26 +1,12 @@
-import os
-import django
-
-# Setup Django environment
+import os, django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hostel_project.settings')
 django.setup()
-
 from smart_leaves.models import LeaveRequest
-
-def check_recent_leaves():
-    print("--- Recent Leave Requests (Last 5) ---")
-    leaves = LeaveRequest.objects.using('leave_db').all().order_by('-created_at')[:5]
-    for l in leaves:
-        student_name = "Unknown"
-        # Try to get student name from default DB
-        from smart_leaves.models import UserProfile
-        try:
-            student = UserProfile.objects.using('default').get(id=l.student_id)
-            student_name = student.user.username
-        except:
-            pass
-            
-        print(f"ID: {l.id} | Student: {student_name: <10} | Status: {l.status: <15} | W-Apprv: {l.warden_approved} | P-Apprv: {l.parent_approved} | Created: {l.created_at} | Updated: {l.updated_at}")
-
-if __name__ == "__main__":
-    check_recent_leaves()
+leaves = LeaveRequest.objects.all().order_by('-created_at')[:10]
+for l in leaves:
+    student = l.student.user.username
+    parent = l.student.parent.user.username if l.student.parent else 'None'
+    phone = l.student.parent.phone_number if l.student.parent else 'N/A'
+    msg_status = "READY" if (l.student.parent and l.student.parent.phone_number) else "MISSING LINK/PHONE"
+    print(f"ID: {l.id:3} Student: {student:15} Parent: {parent:15} Phone: {phone:13} Created: {l.created_at.strftime('%Y-%m-%d %H:%M')}")
+    print(f"    Status: {l.status:15} Msg Config: {msg_status}")

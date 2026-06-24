@@ -18,6 +18,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
   final Map<int, bool> _attendanceStates = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -137,12 +139,29 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     ],
                   ),
                 ),
+                _buildSearchSection(),
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: _students.length,
+                    itemCount: _students.where((student) {
+                      final firstName = (student['user']['first_name'] ?? '').toString().toLowerCase();
+                      final lastName = (student['user']['last_name'] ?? '').toString().toLowerCase();
+                      final fullName = '$firstName $lastName'.trim();
+                      final vml = (student['user']['username'] ?? '').toString().toLowerCase();
+                      final query = _searchQuery.toLowerCase();
+                      return fullName.contains(query) || vml.contains(query);
+                    }).length,
                     itemBuilder: (context, index) {
-                      final student = _students[index];
+                      final filteredStudents = _students.where((student) {
+                        final firstName = (student['user']['first_name'] ?? '').toString().toLowerCase();
+                        final lastName = (student['user']['last_name'] ?? '').toString().toLowerCase();
+                        final fullName = '$firstName $lastName'.trim();
+                        final vml = (student['user']['username'] ?? '').toString().toLowerCase();
+                        final query = _searchQuery.toLowerCase();
+                        return fullName.contains(query) || vml.contains(query);
+                      }).toList();
+                      
+                      final student = filteredStudents[index];
                       final studentId = student['id'];
                       final isSelected = _attendanceStates.containsKey(studentId);
                       final isPresent = _attendanceStates[studentId] ?? false;
@@ -246,6 +265,45 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildSearchSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search by Name or VML...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchQuery.isNotEmpty 
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  setState(() {
+                    _searchController.clear();
+                    _searchQuery = '';
+                  });
+                },
+              )
+            : null,
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey[200]!),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey[200]!),
+          ),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
+      ),
     );
   }
 

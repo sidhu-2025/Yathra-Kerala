@@ -15,6 +15,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _deptController = TextEditingController();
   final _roomController = TextEditingController();
@@ -69,6 +70,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         parentName: _selectedRole == 'STUDENT' ? _parentNameController.text : null,
         parentEmail: _selectedRole == 'STUDENT' ? _parentEmailController.text : null,
         studentUsername: _selectedRole == 'PARENT' ? _admissionController.text : null,
+        fullName: _fullNameController.text,
       );
 
       setState(() => _isLoading = false);
@@ -165,10 +167,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
+                                controller: _fullNameController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: _glassInputDecoration('Full Name', Icons.person_outline),
+                                validator: (value) => value!.isEmpty ? 'Enter full name' : null,
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
                                 controller: _usernameController,
                                 style: const TextStyle(color: Colors.white),
-                                decoration: _glassInputDecoration('Username', Icons.person_outline),
-                                validator: (value) => value!.isEmpty ? 'Enter username' : null,
+                                decoration: _glassInputDecoration(
+                                  _selectedRole == 'STUDENT' ? 'VML ID (for Login)' : 'Username',
+                                  Icons.person_outline,
+                                ),
+                                validator: (value) => value!.isEmpty ? 'Enter ${_selectedRole == 'STUDENT' ? 'VML ID' : 'username'}' : null,
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
@@ -196,8 +208,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 TextFormField(
                                   controller: _admissionController,
                                   style: const TextStyle(color: Colors.white),
-                                  decoration: _glassInputDecoration('Admission Number', Icons.numbers_outlined),
-                                  validator: (value) => value!.isEmpty ? 'Admission number required' : null,
+                                  decoration: _glassInputDecoration('Official VML ID', Icons.numbers_outlined),
+                                  validator: (value) => value!.isEmpty ? 'VML ID required' : null,
                                 ),
                                 const SizedBox(height: 16),
                                 DropdownButtonFormField<String>(

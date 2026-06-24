@@ -5,7 +5,7 @@ from .models import UserProfile, LeaveRequest, Complaint, Attendance, AccessLog,
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active']
 
 class UserProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -46,9 +46,15 @@ class ComplaintSerializer(serializers.ModelSerializer):
 
 class AttendanceSerializer(serializers.ModelSerializer):
     student_name = serializers.CharField(source='student.user.username', read_only=True)
+    student_full_name = serializers.SerializerMethodField()
+
+    def get_student_full_name(self, obj):
+        full_name = obj.student.user.get_full_name().strip()
+        return full_name if full_name else obj.student.user.username
+
     class Meta:
         model = Attendance
-        fields = ['id', 'student', 'student_name', 'date', 'is_present', 'marked_by', 'hours_absent', 'hours_present']
+        fields = ['id', 'student', 'student_name', 'student_full_name', 'date', 'is_present', 'marked_by', 'hours_absent', 'hours_present']
         extra_kwargs = {
             'hours_absent': {'required': False},
             'hours_present': {'required': False},
@@ -72,6 +78,7 @@ class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField()
+    full_name = serializers.CharField(required=False, allow_blank=True)
     role = serializers.ChoiceField(choices=[('STUDENT', 'Student'), ('PARENT', 'Parent'), ('WARDEN', 'Warden'), ('SECURITY', 'Security')])
     phone_number = serializers.CharField(required=False, allow_blank=True)
     parent_username = serializers.CharField(required=False, allow_blank=True)
@@ -96,6 +103,14 @@ class RegisterSerializer(serializers.Serializer):
             email=validated_data['email'],
             password=validated_data['password']
         )
+        
+        full_name = validated_data.get('full_name', '').strip()
+        if full_name:
+            name_parts = full_name.split(' ', 1)
+            user.first_name = name_parts[0]
+            if len(name_parts) > 1:
+                user.last_name = name_parts[1]
+            user.save()
         
         profile, created = UserProfile.objects.get_or_create(
             user=user,

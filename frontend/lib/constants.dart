@@ -7,7 +7,7 @@ class ApiConstants {
   static final String localBaseUrl = kIsWeb
       ? 'http://localhost:8000/api'
       : (defaultTargetPlatform == TargetPlatform.android
-          ? 'http://172.20.192.116:8000/api'
+          ? 'http://10.124.19.160:8000/api' // Use this for Wi-Fi, or localhost:8000 for ADB reverse
           : 'http://localhost:8000/api');
 
   // Replace with your actual production URL after hosting the backend
@@ -18,7 +18,7 @@ class ApiConstants {
   static final String localWsUrl = kIsWeb
       ? 'ws://localhost:8000/ws/leaves/'
       : (defaultTargetPlatform == TargetPlatform.android
-          ? 'ws://172.20.192.116:8000/ws/leaves/'
+          ? 'ws://10.124.19.160:8000/ws/leaves/'
           : 'ws://localhost:8000/ws/leaves/');
 
   // Replace with your actual production WebSocket URL

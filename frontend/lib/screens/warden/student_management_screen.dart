@@ -42,7 +42,10 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> allProfiles = json.decode(response.body);
         setState(() {
-          _students = allProfiles.where((p) => p['role'] == 'STUDENT').toList();
+          _students = allProfiles.where((p) => 
+            p['role'] == 'STUDENT' && 
+            (p['user']['is_active'] ?? true)
+          ).toList();
           _filteredStudents = List.from(_students);
           _isLoading = false;
         });
@@ -80,6 +83,53 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error deactivating student')));
+    }
+  }
+
+  void _editStudentName(int profileId, String currentName) async {
+    final controller = TextEditingController(text: currentName);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Student Name'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(labelText: 'Full Name', hintText: 'Enter student\'s full name'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.trim().isNotEmpty) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      try {
+        final response = await http.post(
+          Uri.parse('${auth.baseUrl}/profiles/$profileId/update_student_name/'),
+          headers: {
+            'Authorization': 'Token ${auth.user?.token}',
+            'Content-Type': 'application/json',
+          },
+          body: json.encode({'full_name': result.trim()}),
+        );
+
+        if (response.statusCode == 200) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name updated successfully')));
+            _fetchStudents();
+          }
+        } else {
+           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update name')));
+        }
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection error')));
+      }
     }
   }
 
@@ -150,13 +200,34 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
                                 ),
                               ),
                               title: Text(
-                                student['user']['username'] ?? 'No Username',
+                                (() {
+                                  final firstName = student['user']['first_name'] ?? '';
+                                  final lastName = student['user']['last_name'] ?? '';
+                                  final fullName = '$firstName $lastName'.trim();
+                                  return fullName.isNotEmpty ? fullName : (student['user']['username'] ?? 'No Username');
+                                })(),
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
-                              subtitle: Text(student['phone_number'] ?? 'No Phone'),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.person_remove, color: Colors.red),
-                                onPressed: () => _showDeactivateDialog(student['id'], student['user']['username']),
+                              subtitle: Text(student['user']['username'] ?? 'No ID'),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.indigo),
+                                    onPressed: () {
+                                      final firstName = student['user']['first_name'] ?? '';
+                                      final lastName = student['user']['last_name'] ?? '';
+                                      final fullName = '$firstName $lastName'.trim();
+                                      _editStudentName(student['id'], fullName);
+                                    },
+                                    tooltip: 'Edit Name',
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.person_remove, color: Colors.red),
+                                    onPressed: () => _showDeactivateDialog(student['id'], student['user']['username']),
+                                    tooltip: 'Deactivate',
+                                  ),
+                                ],
                               ),
                             ),
                           );

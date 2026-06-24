@@ -22,6 +22,8 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
   Map<String, dynamic>? _dailyStats;
   bool _isLoading = false;
   String? _error;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -175,8 +177,10 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
                     ],
                   ),
                 ),
-                if (!_isLoading && _error == null && _report.isNotEmpty)
+                if (!_isLoading && _error == null && _report.isNotEmpty) ...[
                   _buildMonthlySummaryHeader(),
+                  _buildSearchSection(),
+                ],
               ],
             ),
           ),
@@ -193,16 +197,67 @@ class _AttendanceReportScreenState extends State<AttendanceReportScreen> {
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final student = _report[index];
-                    return _buildStudentCard(student);
+                    final filteredReport = _report.where((student) {
+                      final name = (student['full_name'] ?? '').toString().toLowerCase();
+                      final vml = (student['username'] ?? '').toString().toLowerCase();
+                      final query = _searchQuery.toLowerCase();
+                      return name.contains(query) || vml.contains(query);
+                    }).toList();
+                    
+                    if (index >= filteredReport.length) return null;
+                    return _buildStudentCard(filteredReport[index]);
                   },
-                  childCount: _report.length,
+                  childCount: _report.where((student) {
+                    final name = (student['full_name'] ?? '').toString().toLowerCase();
+                    final vml = (student['username'] ?? '').toString().toLowerCase();
+                    final query = _searchQuery.toLowerCase();
+                    return name.contains(query) || vml.contains(query);
+                  }).length,
                 ),
               ),
             ),
           
           const SliverPadding(padding: EdgeInsets.only(bottom: 24)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search by Name or VML...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchQuery.isNotEmpty 
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  setState(() {
+                    _searchController.clear();
+                    _searchQuery = '';
+                  });
+                },
+              )
+            : null,
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey[200]!),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey[200]!),
+          ),
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
       ),
     );
   }
