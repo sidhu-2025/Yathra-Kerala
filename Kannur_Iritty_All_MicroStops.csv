@@ -1,0 +1,19 @@
+Route ID,Route Name,Via,Total Distance,All Micro Stops in Order
+Route A,Primary Highway Route (SH-30),Chalode & Mattannur,~41 km,Kannur Bus Stand -> Caltex -> Mele Chovva -> Kappad -> Mundayad -> Kudukkamotta -> Eachur -> Mowanchery -> Chalode -> Therur -> Edayannur -> Koodali -> Panayathamparamba -> Pazhassi -> Mattannur -> Illambha -> Chavassery -> Uliyil -> 19th Mile -> Keezhur -> Iritty
+Route B,Southern Parallel Route,Chakkarakkal & Anjarakandy,~44 km,Kannur Bus Stand -> Caltex -> Mele Chovva -> Kappad -> Kanhirode -> Chakkarakkal -> Peralassery -> Mavilayi -> Anjarakandy -> Paduvilayi -> Koodali -> Panayathamparamba -> Pazhassi -> Mattannur -> Illambha -> Chavassery -> Uliyil -> 19th Mile -> Keezhur -> Iritty
+Route C,South Detour (Major Inter-town),Kuthuparamba & Mattannur,~52 km,Kannur Bus Stand -> Caltex -> Mele Chovva -> Chala -> Nada -> Kadachira -> Mambaram -> Kuthuparamba -> Thokkilangadi -> Pookode -> Uruvachal -> Mattannur -> Illambha -> Chavassery -> Uliyil -> 19th Mile -> Keezhur -> Iritty
+Route D,Northern Scenic / Hilly Route,Mayyil & Sreekandapuram,~58 km,Kannur Bus Stand -> Caltex -> Pallikunnu -> Puthiyatheru -> Kattampally -> Kolmotta -> Mayyil -> Sreekandapuram -> Nidikumpoyil -> Payyavoor -> Ulikkal -> Iritty
+
+Time,Bus Type/Name,Bus No,Follows Route ID,Fare
+06:15 AM,KSRTC - Ordinary,KL-15-B-1122,Route A,55 INR
+07:00 AM,Private - Kairali,KL-13-F-4433,Route A,55 INR
+07:45 AM,Private - Malabar Coach,KL-13-J-7788,Route B,60 INR
+08:30 AM,KSRTC - Fast Passenger,KL-15-C-7654,Route A,65 INR
+09:15 AM,Private - Navya Travels,KL-58-N-1122,Route C,70 INR
+10:00 AM,Private - Golden,KL-13-G-5500,Route B,60 INR
+11:30 AM,Private - P.K Travels,KL-13-K-9900,Route A,55 INR
+13:15 PM,KSRTC - Super Fast,KL-15-A-9999,Route A,75 INR
+14:45 PM,Private - Brothers,KL-13-B-1234,Route D,80 INR
+16:00 PM,Private - Kairali,KL-13-F-4434,Route A,55 INR
+17:30 PM,KSRTC - Ordinary,KL-15-B-3344,Route B,60 INR
+19:00 PM,KSRTC - Fast Passenger,KL-15-C-1020,Route A,65 INR

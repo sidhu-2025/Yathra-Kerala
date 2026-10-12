@@ -1,0 +1,35 @@
+export const mockRoutes = [
+  {
+    id: 'opt1',
+    mode: 'Train',
+    title: 'Train · Venad Express',
+    duration: '1h 15m',
+    fare: '₹60',
+    departure: '3:05 PM',
+    arrival: '4:20 PM',
+    transfers: 0,
+    recommended: true,
+  },
+  {
+    id: 'opt2',
+    mode: 'Bus',
+    title: 'Bus · KSRTC Super Fast',
+    duration: '1h 45m',
+    fare: '₹95',
+    departure: '2:45 PM',
+    arrival: '4:30 PM',
+    transfers: 0,
+    recommended: false,
+  },
+  {
+    id: 'opt3',
+    mode: 'Combined',
+    title: 'Bus + Train',
+    duration: '1h 30m',
+    fare: '₹75',
+    departure: '3:00 PM',
+    arrival: '4:30 PM',
+    transfers: 1,
+    recommended: false,
+  }
+];

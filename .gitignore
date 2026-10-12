@@ -39,3 +39,6 @@ frontend/flutter_01.log
 # OS
 .DS_Store
 Thumbs.db
+
+# Independent Projects
+fitness_tracker/
