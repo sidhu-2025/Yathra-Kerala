@@ -15,9 +15,9 @@ class ApiService {
       }
       return 'http://127.0.0.1:8000';
     }
-    // On physical Android phone, 127.0.0.1 points to the phone itself.
-    // Connect directly to the host PC's Wi-Fi LAN IP:
-    return 'http://172.26.28.160:8000';
+    // On physical Android phone, connect directly to the host PC's active LAN IP:
+    // (Current active host IP: 10.35.41.231, previous: 172.26.28.160)
+    return 'http://10.35.41.231:8000';
   }
 
   static void setBaseUrl(String url) {
@@ -370,14 +370,21 @@ class ApiService {
         Uri.parse('$baseUrl/api/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username.trim(), 'password': password.trim()}),
-      );
+      ).timeout(const Duration(seconds: 4));
       if (res.statusCode == 200) {
         return jsonDecode(res.body);
+      } else {
+        try {
+          final errJson = jsonDecode(res.body);
+          return {'status': 'fail', 'message': errJson['detail'] ?? 'Invalid username or password'};
+        } catch (_) {
+          return {'status': 'fail', 'message': 'Invalid username or password (${res.statusCode})'};
+        }
       }
     } catch (e) {
       print('login error: $e');
+      return {'status': 'error', 'message': 'Cannot reach backend at $baseUrl. Check network or server IP.'};
     }
-    return null;
   }
 
   static Future<Map<String, dynamic>?> register({
@@ -402,14 +409,21 @@ class ApiService {
           'role': role,
           'vehicle_no': vehicleNo?.trim() ?? 'KL-13-AB-8429',
         }),
-      );
+      ).timeout(const Duration(seconds: 4));
       if (res.statusCode == 200) {
         return jsonDecode(res.body);
+      } else {
+        try {
+          final errJson = jsonDecode(res.body);
+          return {'status': 'fail', 'message': errJson['detail'] ?? 'Registration failed'};
+        } catch (_) {
+          return {'status': 'fail', 'message': 'Registration error (${res.statusCode})'};
+        }
       }
     } catch (e) {
       print('register error: $e');
+      return {'status': 'error', 'message': 'Cannot reach backend at $baseUrl. Check network or server IP.'};
     }
-    return null;
   }
 
   static Future<String> askChatbot(String message) async {

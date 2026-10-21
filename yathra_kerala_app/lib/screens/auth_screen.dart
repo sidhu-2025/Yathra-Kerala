@@ -121,7 +121,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           }
         }
       } else {
-        _showSnack('Invalid passenger credentials. Please check your username and password.', isError: true);
+        final errMsg = res?['message'] ?? 'Invalid passenger credentials. Please check your username and password.';
+        _showSnack(errMsg, isError: true);
       }
     } else {
       // User Sign Up
@@ -211,7 +212,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           }
         }
       } else {
-        _showSnack('Invalid driver credentials. Please check your username and password.', isError: true);
+        final errMsg = res?['message'] ?? 'Invalid driver credentials. Please check your username and password.';
+        _showSnack(errMsg, isError: true);
       }
     } else {
       // Driver Sign Up - Vehicle number is strictly required
@@ -246,6 +248,80 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       SnackBar(
         content: Text(msg),
         backgroundColor: isError ? Colors.red.shade700 : const Color(0xFF1565C0),
+      ),
+    );
+  }
+
+  void _showServerIpDialog() {
+    final textCtrl = TextEditingController(text: ApiService.baseUrl);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.settings_ethernet, color: Color(0xFF1565C0)),
+            SizedBox(width: 8),
+            Text('Server Backend URL', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Configure backend connection for physical phone or emulator:', style: TextStyle(fontSize: 12)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: textCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Backend URL',
+                hintText: 'http://10.35.41.231:8000',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Quick Select:', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                ActionChip(
+                  label: const Text('Ethernet (10.35.41.231)', style: TextStyle(fontSize: 10)),
+                  onPressed: () => textCtrl.text = 'http://10.35.41.231:8000',
+                ),
+                ActionChip(
+                  label: const Text('Wi-Fi (172.26.28.160)', style: TextStyle(fontSize: 10)),
+                  onPressed: () => textCtrl.text = 'http://172.26.28.160:8000',
+                ),
+                ActionChip(
+                  label: const Text('Localhost (127.0.0.1)', style: TextStyle(fontSize: 10)),
+                  onPressed: () => textCtrl.text = 'http://127.0.0.1:8000',
+                ),
+                ActionChip(
+                  label: const Text('Emulator (10.0.2.2)', style: TextStyle(fontSize: 10)),
+                  onPressed: () => textCtrl.text = 'http://10.0.2.2:8000',
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1565C0), foregroundColor: Colors.white),
+            onPressed: () {
+              final newUrl = textCtrl.text.trim();
+              if (newUrl.isNotEmpty) {
+                ApiService.setBaseUrl(newUrl);
+                setState(() {});
+                _showSnack('Backend URL set to: $newUrl');
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
@@ -360,6 +436,46 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 14),
+
+                // Quick Demo Credentials & Server IP Configuration
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    ActionChip(
+                      avatar: const Icon(Icons.flash_on, size: 16, color: Colors.orange),
+                      backgroundColor: Colors.white,
+                      elevation: 2,
+                      label: Text(
+                        _tabController.index == 0 ? 'Auto-fill: user1' : 'Auto-fill: driver1',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: deepBlue),
+                      ),
+                      onPressed: () {
+                        if (_tabController.index == 0) {
+                          _userUsernameCtrl.text = 'user1';
+                          _userPasswordCtrl.text = 'pass123';
+                        } else {
+                          _driverUsernameCtrl.text = 'driver1';
+                          _driverPasswordCtrl.text = 'driver123';
+                        }
+                        setState(() {});
+                        _showSnack('Demo credentials auto-filled!');
+                      },
+                    ),
+                    ActionChip(
+                      avatar: const Icon(Icons.wifi, size: 16, color: primaryBlue),
+                      backgroundColor: Colors.white,
+                      elevation: 2,
+                      label: Text(
+                        'Server: ' + (Uri.tryParse(ApiService.baseUrl)?.host ?? ApiService.baseUrl),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryBlue),
+                      ),
+                      onPressed: _showServerIpDialog,
+                    ),
+                  ],
                 ),
               ],
             ),
