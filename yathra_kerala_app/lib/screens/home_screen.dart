@@ -149,29 +149,64 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _detectUserLocationAndWeather() async {
     setState(() => _isLoadingUserWeather = true);
-    String detectedName = _source.isNotEmpty ? _source : 'Kannur';
-    try {
-      final pos = await getDeviceLocation();
-      if (pos != null && pos['lat'] != null && pos['lng'] != null) {
-        _userLat = (pos['lat'] as num).toDouble();
-        _userLng = (pos['lng'] as num).toDouble();
-        detectedName = 'Current Location';
-      } else {
-        _userLat = null;
-        _userLng = null;
-      }
-    } catch (_) {
-      _userLat = null;
-      _userLng = null;
-    }
-    _userLocationName = detectedName;
+    double? detectedLat;
+    double? detectedLng;
+    String detectedName = _source.isNotEmpty ? _source : 'Chemperi';
 
-    final weather = await ApiService.fetchWeather(_userLocationName, _userLat, _userLng);
+    try {
+      // 1. Ensure permission is requested so physical Android phones yield GPS
+      final perm = await checkLocationPermission();
+      if (perm == 'denied') {
+        await requestLocationPermission();
+      }
+
+      // 2. Fetch fresh physical device GPS position
+      Map<String, dynamic>? pos = await getDeviceLocation();
+      if (pos == null || pos['lat'] == null) {
+        try {
+          pos = await getLocationStream().first.timeout(const Duration(seconds: 3));
+        } catch (_) {}
+      }
+
+      if (pos != null && pos['lat'] != null && pos['lng'] != null) {
+        final double lat = (pos['lat'] as num).toDouble();
+        final double lng = (pos['lng'] as num).toDouble();
+        if (lat != 0.0 && lng != 0.0) {
+          detectedLat = lat;
+          detectedLng = lng;
+          _userLat = lat;
+          _userLng = lng;
+          detectedName = ''; // will be reverse geocoded by weather API
+        }
+      }
+    } catch (e) {
+      debugPrint('[User Live Location Error] $e');
+    }
+
+    // 3. Fallback to active broadcast vehicle location if device GPS is offline
+    if (detectedLat == null && _liveVehicles.isNotEmpty) {
+      final activeV = _liveVehicles.firstWhere((v) => v['is_active'] == true && v['lat'] != null, orElse: () => null);
+      if (activeV != null) {
+        detectedLat = (activeV['lat'] as num?)?.toDouble();
+        detectedLng = (activeV['lng'] as num?)?.toDouble();
+        detectedName = activeV['current_stop'] ?? 'Chemperi, Kerala';
+        _userLat = detectedLat;
+        _userLng = detectedLng;
+      }
+    }
+
+    final weather = await ApiService.fetchWeather(detectedName, detectedLat, detectedLng);
     if (!mounted) return;
     setState(() {
       _weather = weather;
       if (weather['location'] != null && weather['location'].toString().isNotEmpty) {
         _userLocationName = weather['location'];
+        if (_source == 'kannur' || _source.isEmpty) {
+          _source = weather['location'];
+          _sourceCtrl.text = weather['location'];
+        }
+      } else if (detectedName.isNotEmpty) {
+        _userLocationName = detectedName;
       }
       _isLoadingUserWeather = false;
     });
@@ -728,9 +763,94 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-
-
+            // ── Live Weather Status Card (Based on Real Device GPS / Live Location) ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+              child: InkWell(
+                onTap: _refreshWeather,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFA5D6A7), width: 1.2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4),
+                          ],
+                        ),
+                        child: const Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on, size: 14, color: Color(0xFF2E7D32)),
+                                const SizedBox(width: 3),
+                                Flexible(
+                                  child: Text(
+                                    _userLocationName.isNotEmpty ? _userLocationName : 'Live Location',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1B5E20)),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2E7D32),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text('LIVE GPS', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _weather != null
+                                  ? '${_weather!['temperature_celsius'] ?? 27}°C • ${_weather!['weather'] ?? 'Overcast'} • Rain: ${_weather!['rain_probability'] ?? '10%'} • Wind: ${_weather!['wind_kmh'] ?? 5} km/h'
+                                  : 'Detecting live weather for current location...',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF33691E)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.touch_app, size: 16, color: Color(0xFF2E7D32)),
+                          Text('Radar', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
             // Search Origin & Destination Box (YathraKerala Style)
             Padding(

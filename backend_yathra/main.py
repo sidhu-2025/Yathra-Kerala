@@ -3711,17 +3711,83 @@ def get_all_live_vehicles():
 
 @app.get("/api/tracking/{vehicle_id}")
 def get_live_tracking(vehicle_id: str):
-    refresh_simulated_fleet()
     """
     Live Vehicle Tracking Endpoint
-    Returns real-time exact GPS coordinates if a driver is registered and broadcasting.
-    If driver is not registered, returns status 'not_registered' so the user app can alert the user.
-    Supports plate lookup ('KL-13-AB-8429'), unhyphenated ('KL13AB8429'), or bus name ('Royal Travels').
+    ALWAYS prioritizes REAL driver-broadcasted GPS coordinates from SQLite database first.
+    If no physical broadcast exists, falls back to live simulated corridor or train telemetry.
     """
     clean_vid = vehicle_id.strip().upper()
     stripped_vid = clean_vid.replace("-", "").replace(" ", "")
 
-    # 1. Match in LIVE_VEHICLES dictionary (by plate, stripped plate, or bus name)
+    # 1. PRIMARY: Check SQLite yathrakerala.db for REAL driver-broadcasted GPS coordinates!
+    db_file = os.path.join(os.path.dirname(__file__), "yathrakerala.db")
+    if os.path.exists(db_file):
+        try:
+            conn = sqlite3.connect(db_file)
+            conn.row_factory = sqlite3.Row
+            c = conn.cursor()
+            
+            driver_user = c.execute("""
+                SELECT username, name, phone, vehicle_no 
+                FROM users 
+                WHERE role = 'driver' AND (
+                    UPPER(TRIM(vehicle_no)) = ?
+                    OR REPLACE(REPLACE(UPPER(vehicle_no), '-', ''), ' ', '') = ?
+                    OR ? LIKE '%' || UPPER(TRIM(vehicle_no)) || '%'
+                )
+            """, (clean_vid, stripped_vid, clean_vid)).fetchone()
+            
+            row = c.execute("""
+                SELECT v.vehicle_number, v.vehicle_name, v.vehicle_type, v.sub_type,
+                       v.last_lat, v.last_lng, v.last_stop, v.last_next_stop,
+                       v.last_updated, v.is_active, v.last_driver_name, r.route_name
+                FROM vehicles v
+                LEFT JOIN routes r ON v.current_route_id = r.id
+                WHERE UPPER(TRIM(v.vehicle_number)) = ?
+                   OR REPLACE(REPLACE(UPPER(v.vehicle_number), '-', ''), ' ', '') = ?
+                   OR UPPER(v.vehicle_name) = ?
+                   OR UPPER(v.vehicle_name) LIKE ?
+                   OR ? LIKE '%' || UPPER(v.vehicle_name) || '%'
+            """, (clean_vid, stripped_vid, clean_vid, f"%{clean_vid}%", clean_vid)).fetchone()
+            conn.close()
+            
+            # If the driver has broadcasted real physical GPS coordinates (e.g. Chemperi):
+            if row and row["last_lat"] is not None and row["last_lng"] is not None:
+                real_plate = row["vehicle_number"]
+                real_name = row["vehicle_name"] or "Bus"
+                d_name = row["last_driver_name"] or (driver_user["name"] if driver_user else "Registered Driver")
+                now_str = row["last_updated"] or datetime.datetime.now().strftime("%I:%M:%S %p")
+                
+                # Keep bus active and trackable so passengers can view it even if driver switches apps
+                live_res = {
+                    "vehicle_id": real_plate,
+                    "name": f"{real_name} ({real_plate})",
+                    "bus_name": real_name,
+                    "type": row["vehicle_type"] or "Bus",
+                    "sub_type": row["sub_type"] or "Private Bus",
+                    "route": row["route_name"] or f"Live Track: {row['last_stop']}",
+                    "lat": row["last_lat"],
+                    "lng": row["last_lng"],
+                    "current_stop": row["last_stop"] or "Live Device GPS Track",
+                    "next_stop": row["last_next_stop"] or "Live Device GPS Track",
+                    "speed_kmh": 35.0,
+                    "status": "LIVE GPS TRANSMITTING",
+                    "is_active": True,
+                    "driver_registered": True,
+                    "has_live_gps": True,
+                    "delay_mins": 0,
+                    "driver_name": d_name,
+                    "last_updated": now_str,
+                    "timestamp": time.time()
+                }
+                # Sync into memory
+                LIVE_VEHICLES[real_plate] = live_res
+                return live_res
+        except Exception as e:
+            print(f"Error querying DB for vehicle tracking: {e}")
+
+    # 2. SECONDARY: Check LIVE_VEHICLES in memory / corridor simulation
+    refresh_simulated_fleet()
     for vid, veh in LIVE_VEHICLES.items():
         v_upper = vid.strip().upper()
         v_stripped = v_upper.replace("-", "").replace(" ", "")
