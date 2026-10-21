@@ -1,0 +1,17 @@
+{
+  "name": "railradar-proxy",
+  "version": "1.0.0",
+  "description": "Secure Cloudflare Worker proxy for RailRadar Indian Railways Live Status API",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "secret:put": "wrangler secret put RAILRADAR_API_KEY"
+  },
+  "keywords": ["railradar", "cloudflare-worker", "train-tracking", "indian-railways"],
+  "author": "YathraKerala",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.111.0"
+  }
+}

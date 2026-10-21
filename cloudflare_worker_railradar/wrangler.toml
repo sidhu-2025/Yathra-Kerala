@@ -1,0 +1,12 @@
+name = "railradar-proxy"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# Free tier settings
+# The RAILRADAR_API_KEY secret is set using:
+#   npx wrangler secret put RAILRADAR_API_KEY
+# Never commit your API key into this file or repository.
+
+[vars]
+ENVIRONMENT = "production"
+DEFAULT_CACHE_SECONDS = "120"

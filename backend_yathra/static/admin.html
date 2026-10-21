@@ -1,0 +1,2270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YathraKerala - Admin Portal</title>
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Leaflet CSS & JS for interactive OpenStreetMap picking -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .map-container { height: 260px; width: 100%; border-radius: 8px; z-index: 10; }
+  </style>
+</head>
+<body class="bg-slate-50 flex h-screen overflow-hidden">
+
+  <!-- ================= AUTH MODAL ================= -->
+  <div id="auth-container" class="fixed inset-0 z-50 bg-slate-900 bg-opacity-95 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+      <div class="bg-emerald-800 p-6 text-white text-center">
+        <i class="fa-solid fa-route text-4xl text-amber-400 mb-2"></i>
+        <h2 class="text-2xl font-bold">YathraKerala</h2>
+        <p class="text-xs text-emerald-200 mt-1 uppercase tracking-wider font-semibold">Admin Portal</p>
+      </div>
+
+      <div class="flex border-b border-slate-200">
+        <button id="tab-login-btn" onclick="toggleAuth('login')" class="flex-1 py-3 text-sm font-bold text-emerald-800 border-b-2 border-emerald-700">
+          Admin Sign In
+        </button>
+        <button id="tab-reg-btn" onclick="toggleAuth('register')" class="flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent">
+          Register Admin
+        </button>
+      </div>
+
+      <!-- Sign In Form -->
+      <form id="form-login" onsubmit="handleLogin(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Username</label>
+          <input type="text" id="login-user" value="admin" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
+          <input type="password" id="login-pass" value="admin123" required class="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-sm shadow">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" onsubmit="handleRegister(event)" class="p-6 space-y-3 hidden">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Full Name</label>
+          <input type="text" id="reg-name" required placeholder="Abhijith K" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Username</label>
+          <input type="text" id="reg-user" required placeholder="admin2" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
+          <input type="password" id="reg-pass" required placeholder="••••••••" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email</label>
+          <input type="email" id="reg-email" required placeholder="admin@yathrakerala.com" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Phone</label>
+          <input type="text" id="reg-phone" required placeholder="9847123456" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+        </div>
+        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 rounded-lg text-sm shadow">
+          Register Account
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= DASHBOARD ================= -->
+  <!-- Sidebar -->
+  <aside class="w-60 bg-emerald-900 text-white flex flex-col shadow-lg">
+    <div class="p-5 border-b border-emerald-800">
+      <h1 class="text-lg font-bold tracking-wide">YathraKerala</h1>
+      <p class="text-xs text-emerald-300">Admin Control Panel</p>
+    </div>
+
+    <nav class="flex-1 p-3 space-y-1">
+      <button onclick="switchTab('routes')" id="btn-routes" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-emerald-800">
+        <i class="fa-solid fa-route w-5"></i>
+        <span>Routes</span>
+      </button>
+      <button onclick="switchTab('buses')" id="btn-buses" class="nav-btn w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-800">
+        <i class="fa-solid fa-bus w-5"></i>
+        <span>Buses & Fleet</span>
+      </button>
+      <button onclick="switchTab('ksrtc')" id="btn-ksrtc" class="nav-btn w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-800 transition">
+        <div class="flex items-center space-x-3">
+          <i class="fa-solid fa-van-shuttle w-5 text-amber-300"></i>
+          <span>KSRTC Timetable</span>
+        </div>
+        <span id="badge-ksrtc-nav" class="bg-amber-400 text-slate-900 text-[10px] font-black px-1.5 py-0.5 rounded-full">96</span>
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-emerald-800 flex items-center justify-between">
+      <span id="current-admin-display" class="text-xs text-emerald-200 font-bold truncate">Admin</span>
+      <button onclick="handleLogout()" class="text-xs text-red-300 hover:text-white" title="Logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main View -->
+  <main class="flex-1 flex flex-col overflow-y-auto">
+    <!-- Topbar with the interactive map action buttons -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+      <h2 id="view-title" class="text-lg font-bold text-slate-800">Routes</h2>
+      
+      <div class="flex items-center space-x-3">
+        <button onclick="openModal('modal-add-route')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3.5 py-2 rounded-lg font-bold flex items-center shadow-sm">
+          <i class="fa-solid fa-map-location-dot mr-1.5"></i> Add Route on OSM
+        </button>
+        <button onclick="openModal('modal-add-bus')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3.5 py-2 rounded-lg font-bold flex items-center shadow-sm">
+          <i class="fa-solid fa-plus mr-1.5"></i> Add Bus
+        </button>
+        <button onclick="switchTab('ksrtc')" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3.5 py-2 rounded-lg font-bold flex items-center shadow-sm">
+          <i class="fa-solid fa-bus-simple mr-1.5"></i> KSRTC Schedules (96)
+        </button>
+      </div>
+    </header>
+
+    <div class="p-6">
+
+      <!-- TAB 1: ROUTES -->
+      <section id="tab-routes" class="tab-view">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+              <tr>
+                <th class="py-3 px-4">Route ID</th>
+                <th class="py-3 px-4">Route Name (Click to see stops)</th>
+                <th class="py-3 px-4">Start Point</th>
+                <th class="py-3 px-4">End Point</th>
+                <th class="py-3 px-4">Mode</th>
+                <th class="py-3 px-4">Distance (km)</th>
+                <th class="py-3 px-4 text-center">Manage</th>
+              </tr>
+            </thead>
+            <tbody id="table-routes" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 2: BUSES -->
+      <section id="tab-buses" class="tab-view hidden">
+        <!-- Banner linking to KSRTC Timetable -->
+        <div class="mb-4 flex items-center justify-between bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-3.5 shadow-sm">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-base shadow">
+              <i class="fa-solid fa-bus-simple"></i>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-800">Official KSRTC Kannur Depot Timetable (96 Services)</div>
+              <div class="text-[11px] text-slate-600">The 96 real services from Kannur depot are active in the Yathra AI multi-modal transit planner.</div>
+            </div>
+          </div>
+          <button onclick="switchTab('ksrtc')" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3.5 py-2 rounded-lg font-bold shadow-sm transition flex items-center space-x-1.5">
+            <span>View 96 KSRTC Schedules</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </button>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+              <tr>
+                <th class="py-3 px-4">Bus / Vehicle No</th>
+                <th class="py-3 px-4">Bus Name</th>
+                <th class="py-3 px-4">Type</th>
+                <th class="py-3 px-4">Service Tier</th>
+                <th class="py-3 px-4">Assigned Route</th>
+                <th class="py-3 px-4">Daily Scheduled Run</th>
+                <th class="py-3 px-4 text-center">Stop Timetable / Actions</th>
+              </tr>
+            </thead>
+            <tbody id="table-buses" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: KSRTC TIMETABLE & FLEET -->
+      <section id="tab-ksrtc" class="tab-view hidden">
+        <!-- Banner / Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-4 rounded-xl shadow-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-100">KSRTC Schedules</span>
+              <i class="fa-solid fa-bus-simple text-xl opacity-80"></i>
+            </div>
+            <div class="text-2xl font-black mt-2" id="ksrtc-stat-total">96 Services</div>
+            <div class="text-[11px] text-amber-100 mt-0.5">Official Kannur Depot Timetable</div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500">
+              <span class="text-xs font-bold uppercase tracking-wider">Depot Hub</span>
+              <i class="fa-solid fa-location-dot text-emerald-600 text-lg"></i>
+            </div>
+            <div class="text-lg font-bold text-slate-800 mt-2">Kannur Central</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Thavakkara / Caltex Stands</div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500">
+              <span class="text-xs font-bold uppercase tracking-wider">Corridors</span>
+              <i class="fa-solid fa-route text-blue-600 text-lg"></i>
+            </div>
+            <div class="text-lg font-bold text-slate-800 mt-2">Malabar & Interstate</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Kasaragod, Iritty, Kozhikode, Blr...</div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between text-slate-500">
+              <span class="text-xs font-bold uppercase tracking-wider">Transit Planner</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse"></span> Active
+              </span>
+            </div>
+            <div class="text-lg font-bold text-slate-800 mt-2">Live Synced</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Powers Yathra Transit Planner</div>
+          </div>
+        </div>
+
+        <!-- Search & Filter Bar -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-4 flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div class="relative w-full md:w-96">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-sm"></i>
+            <input type="text" id="ksrtc-search-input" oninput="filterKsrtcTable()" placeholder="Search destination, via stop, or service..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          </div>
+
+          <div class="flex items-center space-x-2 w-full md:w-auto">
+            <label class="text-xs font-bold text-slate-500 whitespace-nowrap">Category:</label>
+            <select id="ksrtc-category-filter" onchange="filterKsrtcTable()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+              <option value="all">All Categories (96)</option>
+              <option value="Super Fast">Super Fast</option>
+              <option value="Fast">Fast Passenger</option>
+              <option value="Regional Feeder">Regional Feeder (Kudiyanmala/Cherupuzha/Chemperi)</option>
+              <option value="Regional">Regional (Kasaragod/Iritty/Payyanur)</option>
+              <option value="Interstate">Interstate (Mangaluru/Bengaluru/Mysuru)</option>
+              <option value="Southbound">Southbound (Ernakulam/Thrissur/Kozhikode)</option>
+              <option value="Local">Local / Pilgrim (Parassinikkadavu/Mayyil)</option>
+            </select>
+            <span id="ksrtc-filtered-count" class="text-xs font-bold text-slate-600 px-2.5 py-1.5 bg-slate-100 rounded-lg whitespace-nowrap">96 Services</span>
+          </div>
+        </div>
+
+        <!-- Schedules Table -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                <tr>
+                  <th class="py-3 px-3 w-12 text-center">#</th>
+                  <th class="py-3 px-4">Service Category & Name</th>
+                  <th class="py-3 px-4">Departure (Kannur)</th>
+                  <th class="py-3 px-4">Destination & Arrival</th>
+                  <th class="py-3 px-4">Duration</th>
+                  <th class="py-3 px-4">Key Route / Via Stops</th>
+                  <th class="py-3 px-3 text-center">Est Fare</th>
+                  <th class="py-3 px-3 text-center">Distance</th>
+                  <th class="py-3 px-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="table-ksrtc" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= POPUP MODALS WITH INTERACTIVE OPENSTREETMAP ================= -->
+
+  <!-- Modal 1: Add Route by Selecting Source & Destination on OpenStreetMap -->
+  <div id="modal-add-route" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="font-bold text-slate-800 text-base flex items-center">
+          <i class="fa-solid fa-map-location-dot text-blue-600 mr-2"></i> Add Route on OpenStreetMap
+        </h3>
+        <button onclick="closeModal('modal-add-route')"><i class="fa-solid fa-xmark text-slate-400"></i></button>
+      </div>
+
+      <!-- Selection Mode Instruction -->
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-xs text-blue-900 flex items-center justify-between">
+        <div>
+          <span class="font-bold">Instructions:</span> Click on the map to set:
+          <span class="inline-block bg-green-600 text-white px-2 py-0.5 rounded font-bold ml-1">1. Source (Green)</span> and 
+          <span class="inline-block bg-red-600 text-white px-2 py-0.5 rounded font-bold ml-1">2. Destination (Red)</span>.
+        </div>
+      </div>
+
+      <!-- Interactive Leaflet OpenStreetMap Container -->
+      <div id="route-map" class="map-container mb-3 border border-slate-300"></div>
+
+      <form onsubmit="submitAddRoute(event)" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Source / Origin</label>
+            <input type="text" id="new-route-start" required placeholder="Click map or type name" class="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50">
+            <span id="route-start-coords" class="text-[10px] text-slate-500 font-mono"></span>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Destination</label>
+            <input type="text" id="new-route-end" required placeholder="Click map or type name" class="w-full px-3 py-1.5 border rounded-lg text-sm bg-slate-50">
+            <span id="route-end-coords" class="text-[10px] text-slate-500 font-mono"></span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Route Title</label>
+          <input type="text" id="new-route-name" required placeholder="e.g. Chemperi - Kannur Direct Line" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Transport Mode</label>
+            <select id="new-route-mode" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+              <option value="BUS">BUS</option>
+              <option value="TRAIN">TRAIN</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Calculated Distance (km)</label>
+            <input type="number" step="0.1" id="new-route-dist" required placeholder="Auto calculated from OSM" class="w-full px-3 py-1.5 border rounded-lg text-sm font-bold text-blue-700 bg-blue-50">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm shadow">
+          Save Route to Database
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Add Bus Stop by Clicking Point on OpenStreetMap -->
+  <div id="modal-add-stop" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="font-bold text-slate-800 text-base flex items-center">
+          <i class="fa-solid fa-location-crosshairs text-amber-600 mr-2"></i> Pick Bus Stop on OpenStreetMap
+        </h3>
+        <button onclick="closeModal('modal-add-stop')"><i class="fa-solid fa-xmark text-slate-400"></i></button>
+      </div>
+
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5 mb-3 text-xs text-amber-900">
+        <span class="font-bold">Instruction:</span> Click anywhere on the map to drop the bus stop pin.
+      </div>
+
+      <!-- Leaflet Map Container for Stop Picking -->
+      <div id="stop-map" class="map-container mb-3 border border-slate-300"></div>
+
+      <form onsubmit="submitAddStop(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Bus Stop Name</label>
+          <input type="text" id="new-stop-name" required placeholder="e.g. Chemperi Town Bus Stand" class="w-full px-3 py-1.5 border rounded-lg text-sm">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Latitude</label>
+            <input type="number" step="0.000001" id="new-stop-lat" required placeholder="12.0469" class="w-full px-3 py-1.5 border rounded-lg text-sm font-mono bg-slate-50">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Longitude</label>
+            <input type="number" step="0.000001" id="new-stop-lng" required placeholder="75.5451" class="w-full px-3 py-1.5 border rounded-lg text-sm font-mono bg-slate-50">
+          </div>
+        </div>
+        <button type="submit" class="w-full mt-3 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-sm shadow">
+          Save Bus Stop
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Add Bus -->
+  <div id="modal-add-bus" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-slate-800 text-base flex items-center">
+          <i class="fa-solid fa-plus-circle text-emerald-600 mr-2"></i> Add Bus / Vehicle
+        </h3>
+        <button onclick="closeModal('modal-add-bus')"><i class="fa-solid fa-xmark text-slate-400"></i></button>
+      </div>
+      <form onsubmit="submitAddBus(event)" class="space-y-3 flex-1 overflow-y-auto pr-1 text-xs">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Bus / Plate Number</label>
+            <input type="text" id="new-bus-no" required placeholder="KL-13-AB-1234" class="w-full px-3 py-1.5 border rounded-lg text-xs font-mono font-bold">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Bus Name</label>
+            <input type="text" id="new-bus-name" required placeholder="KSRTC Swift / Royal Travels" class="w-full px-3 py-1.5 border rounded-lg text-xs font-semibold">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Type</label>
+            <select id="new-bus-type" class="w-full px-3 py-1.5 border rounded-lg text-xs">
+              <option value="Bus">Bus</option>
+              <option value="Train">Train</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Service Tier</label>
+            <input type="text" id="new-bus-tier" required placeholder="Fast Passenger" class="w-full px-3 py-1.5 border rounded-lg text-xs">
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="block font-bold text-slate-600 uppercase">Assign Routes (Select Multiple)</label>
+            <span class="text-[10px] text-blue-600 font-bold">Select one or more</span>
+          </div>
+          <div id="new-bus-routes-list" class="max-h-40 overflow-y-auto border border-slate-300 rounded-lg p-2 space-y-1.5 bg-slate-50">
+            <!-- Dynamically populated route checkboxes -->
+          </div>
+        </div>
+        <button type="submit" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-xs shadow">Save Bus</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Assign Multiple Routes to Bus -->
+  <div id="modal-assign-routes" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-start pb-3 border-b border-slate-200">
+        <div>
+          <h3 class="font-bold text-slate-800 text-lg flex items-center">
+            <i class="fa-solid fa-route text-blue-600 mr-2"></i> Assign Routes to Vehicle
+          </h3>
+          <p id="assign-routes-vehicle-label" class="text-xs text-slate-500 font-medium mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('modal-assign-routes')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="my-3 flex items-center justify-between text-xs">
+        <span class="text-slate-600 font-semibold">Select all routes this vehicle operates on:</span>
+        <div class="space-x-2 text-xs">
+          <button type="button" onclick="toggleAllAssignRoutes(true)" class="text-blue-600 hover:underline font-bold">Select All</button>
+          <span class="text-slate-300">•</span>
+          <button type="button" onclick="toggleAllAssignRoutes(false)" class="text-slate-500 hover:underline">Clear All</button>
+        </div>
+      </div>
+
+      <input type="hidden" id="assign-routes-vehicle-id">
+
+      <!-- Scrollable Route Checkboxes -->
+      <div id="assign-routes-list" class="flex-1 overflow-y-auto border border-slate-200 rounded-xl p-3 space-y-2 bg-slate-50">
+        <!-- Dynamically populated route cards with checkboxes -->
+      </div>
+
+      <div class="pt-3 mt-3 border-t border-slate-200 flex justify-end space-x-2 text-xs">
+        <button type="button" onclick="closeModal('modal-assign-routes')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg">Cancel</button>
+        <button type="button" onclick="submitAssignRoutes()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow">Save Route Assignments</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Edit Bus Details & Routes -->
+  <div id="modal-edit-bus" class="fixed inset-0 bg-black bg-opacity-60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center mb-3 pb-2 border-b">
+        <h3 class="font-bold text-slate-800 text-base flex items-center">
+          <i class="fa-solid fa-pen-to-square text-emerald-600 mr-2"></i> Edit Bus Details & Routes
+        </h3>
+        <button onclick="closeModal('modal-edit-bus')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="submitEditBus(event)" class="space-y-3 text-xs overflow-y-auto flex-1 pr-1">
+        <input type="hidden" id="edit-bus-id">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Plate Number</label>
+            <input type="text" id="edit-bus-no" required class="w-full px-3 py-1.5 border rounded-lg font-mono font-bold">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Bus Name</label>
+            <input type="text" id="edit-bus-name" required class="w-full px-3 py-1.5 border rounded-lg font-semibold">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Type</label>
+            <select id="edit-bus-type" class="w-full px-3 py-1.5 border rounded-lg">
+              <option value="Bus">Bus</option>
+              <option value="Train">Train</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Service Tier</label>
+            <input type="text" id="edit-bus-tier" required class="w-full px-3 py-1.5 border rounded-lg">
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="block font-bold text-slate-600 uppercase">Assigned Routes (Select Multiple)</label>
+            <span class="text-[10px] text-blue-600 font-bold">Select one or more</span>
+          </div>
+          <div id="edit-bus-routes-list" class="max-h-44 overflow-y-auto border border-slate-300 rounded-lg p-2 space-y-1.5 bg-slate-50">
+            <!-- Dynamically populated route checkboxes -->
+          </div>
+        </div>
+        <div class="pt-3 border-t flex space-x-2">
+          <button type="button" onclick="closeModal('modal-edit-bus')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow">Save Bus & Routes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Route Stops & Live Timetable Manager -->
+  <div id="modal-route-stops" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-5xl w-full p-6 max-h-[92vh] flex flex-col">
+      <!-- Header -->
+      <div class="flex justify-between items-start pb-3 border-b border-slate-200">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider" id="modal-stops-mode">BUS</span>
+            <h3 id="modal-stops-title" class="font-bold text-slate-800 text-lg">Route Stops & Timetable</h3>
+          </div>
+          <p id="modal-stops-subtitle" class="text-xs text-slate-500 font-medium mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('modal-route-stops')" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Controls bar: Bus Timing Selector + Search Filter -->
+      <div class="my-3 bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center space-x-2">
+          <label class="font-bold text-slate-700 flex items-center">
+            <i class="fa-solid fa-bus text-emerald-600 mr-1.5"></i> Select Bus for Timings:
+          </label>
+          <select id="route-bus-select" onchange="renderRouteTimetable()" class="border border-slate-300 rounded-lg px-3 py-1.5 font-semibold text-slate-800 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button onclick="openInsertStopModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center space-x-1.5 transition cursor-pointer">
+            <i class="fa-solid fa-circle-plus"></i>
+            <span>+ Add Bus Stop in Between</span>
+          </button>
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
+            <input type="text" id="route-stop-search" oninput="filterRouteStops(this.value)" placeholder="Filter stops..." class="pl-7 pr-3 py-1 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+          </div>
+          <span id="route-stops-count-badge" class="font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-lg">61 Stops</span>
+        </div>
+      </div>
+
+      <!-- Active Bus Daily Run Badge -->
+      <div id="route-bus-schedule-banner" class="mb-3 px-3.5 py-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between text-xs text-emerald-900">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-clock text-emerald-600"></i>
+          <span class="font-bold" id="banner-bus-name">Bus Schedule</span>
+          <span class="text-emerald-700">•</span>
+          <span id="banner-bus-run" class="font-mono font-semibold">Daily Run: 06:00 AM ➔ 07:35 AM</span>
+        </div>
+        <span class="text-[11px] font-semibold text-emerald-700 hidden sm:inline"><i class="fa-solid fa-pen-to-square mr-1"></i> Click <b>Edit Time</b> or <b>Edit Stop</b> to modify records in DB</span>
+      </div>
+
+      <!-- Stops & Timetable Table -->
+      <div class="flex-1 overflow-y-auto border border-slate-200 rounded-xl shadow-inner">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0 border-b border-slate-200 shadow-sm z-10">
+            <tr>
+              <th class="py-2.5 px-3 w-12 text-center">#</th>
+              <th class="py-2.5 px-3">Stop Name</th>
+              <th class="py-2.5 px-3">Distance</th>
+              <th class="py-2.5 px-3">Arrival Time</th>
+              <th class="py-2.5 px-3">Departure Time</th>
+              <th class="py-2.5 px-3 text-right">Fare (₹)</th>
+              <th class="py-2.5 px-3 text-center w-64">Manage</th>
+            </tr>
+          </thead>
+          <tbody id="modal-route-stops-tbody" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div class="pt-3 mt-3 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+        <span><i class="fa-solid fa-database text-emerald-600 mr-1"></i> Changes to stops or timings are saved directly to SQLite (<code class="font-mono text-slate-700 font-bold">yathrakerala.db</code>).</span>
+        <button onclick="closeModal('modal-route-stops')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2 rounded-lg text-xs shadow">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Stop Details -->
+  <div id="modal-edit-route-stop-dialog" class="fixed inset-0 bg-black bg-opacity-60 z-[60] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center">
+          <i class="fa-solid fa-location-dot text-amber-600 mr-2"></i> Edit Stop Details
+        </h3>
+        <button onclick="closeModal('modal-edit-route-stop-dialog')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form onsubmit="submitEditRouteStop(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="edit-stop-id">
+        <input type="hidden" id="edit-stop-route-id">
+        <div>
+          <label class="block font-bold text-slate-600 uppercase mb-1">Stop Name</label>
+          <input type="text" id="edit-stop-name" required class="w-full px-3 py-2 border rounded-lg text-xs font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-600 uppercase mb-1">Distance from Origin (km)</label>
+          <input type="number" step="0.1" id="edit-stop-dist" required class="w-full px-3 py-2 border rounded-lg text-xs font-mono font-bold text-blue-700 bg-blue-50 focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Latitude</label>
+            <input type="number" step="0.000001" id="edit-stop-lat" class="w-full px-2.5 py-1.5 border rounded-lg text-xs font-mono bg-slate-50">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Longitude</label>
+            <input type="number" step="0.000001" id="edit-stop-lng" class="w-full px-2.5 py-1.5 border rounded-lg text-xs font-mono bg-slate-50">
+          </div>
+        </div>
+        <div class="pt-2 flex space-x-2">
+          <button type="button" onclick="closeModal('modal-edit-route-stop-dialog')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow">Save Stop</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Stop Timetable -->
+  <div id="modal-edit-timing-dialog" class="fixed inset-0 bg-black bg-opacity-60 z-[60] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-3 pb-2 border-b">
+        <div>
+          <h3 class="font-bold text-slate-800 text-sm flex items-center">
+            <i class="fa-solid fa-clock text-emerald-600 mr-2"></i> Edit Stop Timetable
+          </h3>
+          <p id="edit-timing-bus-label" class="text-[11px] text-emerald-700 font-medium mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('modal-edit-timing-dialog')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="bg-slate-50 p-2 rounded-lg border border-slate-200 mb-3 text-xs">
+        <span class="text-slate-500">Stop:</span> <span id="edit-timing-stop-label" class="font-bold text-slate-800"></span>
+      </div>
+
+      <form onsubmit="submitEditTiming(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="edit-timing-id">
+        <input type="hidden" id="edit-timing-vehicle-id">
+        <input type="hidden" id="edit-timing-stop-id">
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Arrival Time</label>
+            <input type="text" id="edit-timing-arr" required placeholder="06:47 AM" class="w-full px-3 py-2 border rounded-lg text-xs font-mono font-bold text-blue-800 bg-blue-50 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <span class="text-[10px] text-slate-400">Format: hh:mm AM/PM</span>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-600 uppercase mb-1">Departure Time</label>
+            <input type="text" id="edit-timing-dep" required placeholder="06:49 AM" class="w-full px-3 py-2 border rounded-lg text-xs font-mono font-bold text-emerald-800 bg-emerald-50 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <span class="text-[10px] text-slate-400">Format: hh:mm AM/PM</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-600 uppercase mb-1">Fare from Origin (₹)</label>
+          <input type="number" step="1" id="edit-timing-fare" required class="w-full px-3 py-2 border rounded-lg text-xs font-mono font-bold text-slate-800 bg-slate-50 focus:outline-none">
+        </div>
+
+        <div class="pt-2 flex space-x-2">
+          <button type="button" onclick="closeModal('modal-edit-timing-dialog')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg">Cancel</button>
+          <button type="submit" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow">Save Time to DB</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Bus Stop in Between -->
+  <div id="modal-insert-route-stop-dialog" class="fixed inset-0 bg-black bg-opacity-60 z-[60] hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-5 max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-200">
+        <div>
+          <h3 class="font-bold text-slate-800 text-sm flex items-center">
+            <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center mr-2 text-xs font-bold">
+              <i class="fa-solid fa-plus"></i>
+            </span>
+            Add Bus Stop in Between
+          </h3>
+          <p id="insert-stop-route-name-badge" class="text-[11px] text-indigo-700 font-medium mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('modal-insert-route-stop-dialog')" class="text-slate-400 hover:text-slate-600 p-1">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form onsubmit="submitInsertRouteStop(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="insert-stop-route-id">
+
+        <!-- Position Selector -->
+        <div class="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100">
+          <label class="block font-bold text-indigo-950 uppercase tracking-wide text-[10px] mb-1.5 flex items-center">
+            <i class="fa-solid fa-arrows-split-up-and-left text-indigo-600 mr-1.5"></i>
+            Where to insert stop along route?
+          </label>
+          <select id="insert-stop-after-seq" onchange="onInsertPositionChanged()" class="w-full px-3 py-2 border border-indigo-200 rounded-lg text-xs font-semibold text-slate-800 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <!-- Dynamically populated with all stop positions -->
+          </select>
+          <p id="insert-stop-position-hint" class="text-[11px] text-indigo-600 font-medium mt-1.5"></p>
+        </div>
+
+        <!-- Interactive Map Selector for Bus Stop -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block font-bold text-slate-700 uppercase tracking-wide text-[10px] flex items-center">
+              <i class="fa-solid fa-map-location-dot text-indigo-600 mr-1.5"></i>
+              Select Bus Stop on Map
+            </label>
+            <span class="text-[10px] text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+              <i class="fa-solid fa-arrow-pointer mr-1"></i> Click map to place stop
+            </span>
+          </div>
+          <div class="relative rounded-xl overflow-hidden border border-slate-300 shadow-inner">
+            <div id="insert-stop-map" style="height: 200px;" class="w-full z-0"></div>
+            <div class="absolute bottom-1.5 left-2 right-2 bg-white/90 backdrop-blur text-[10px] font-semibold text-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 shadow flex items-center justify-between z-[400] pointer-events-none">
+              <span><span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1"></span> Prev Stop</span>
+              <span><span class="inline-block w-2.5 h-2.5 rounded-full bg-orange-500 mr-1"></span> New Stop (Click / Drag)</span>
+              <span><span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500 mr-1"></span> Next Stop</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stop Name with Datalist -->
+        <div>
+          <label class="block font-bold text-slate-700 uppercase tracking-wide text-[10px] mb-1">
+            <i class="fa-solid fa-location-dot text-amber-500 mr-1"></i>
+            Stop Name <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="insert-stop-name" list="insert-stops-datalist" oninput="onInsertStopNameInput(this.value)" required placeholder="e.g. Puthiyatheru Junction, Thana South, etc." class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <datalist id="insert-stops-datalist"></datalist>
+          <span class="text-[10px] text-slate-400">Type to search, enter new name, or click on map to auto-fill</span>
+        </div>
+
+        <!-- Distance & Fare -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 uppercase tracking-wide text-[10px] mb-1">
+              <i class="fa-solid fa-road text-blue-500 mr-1"></i> Distance from Origin (km)
+            </label>
+            <input type="number" step="0.1" id="insert-stop-dist" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-blue-800 bg-blue-50/60 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <span class="text-[10px] text-slate-400" id="insert-dist-hint">Auto-calculated or from map</span>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 uppercase tracking-wide text-[10px] mb-1">
+              <i class="fa-solid fa-indian-rupee-sign text-emerald-600 mr-1"></i> Fare from Origin (₹)
+            </label>
+            <input type="number" step="1" id="insert-stop-fare" required value="10" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold text-emerald-800 bg-emerald-50/60 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Coordinates (Auto-calculated / editable) -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 uppercase tracking-wide text-[10px] mb-1">Latitude</label>
+            <input type="number" step="0.000001" id="insert-stop-lat" oninput="onInsertCoordsInput()" placeholder="11.8745" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono bg-slate-50">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 uppercase tracking-wide text-[10px] mb-1">Longitude</label>
+            <input type="number" step="0.000001" id="insert-stop-lng" oninput="onInsertCoordsInput()" placeholder="75.3704" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono bg-slate-50">
+          </div>
+        </div>
+
+        <!-- Timing for Currently Selected Bus -->
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between mb-2">
+            <label class="font-bold text-slate-700 uppercase tracking-wide text-[10px] flex items-center">
+              <i class="fa-solid fa-clock text-emerald-600 mr-1"></i> Bus Timetable Entry
+            </label>
+            <span id="insert-stop-bus-badge" class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full"></span>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-slate-500 text-[10px] font-medium mb-1">Arrival Time</label>
+              <input type="text" id="insert-stop-arr" placeholder="07:16 AM" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono font-bold text-blue-800 bg-white focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-slate-500 text-[10px] font-medium mb-1">Departure Time</label>
+              <input type="text" id="insert-stop-dep" placeholder="07:17 AM" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-mono font-bold text-emerald-800 bg-white focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex space-x-2">
+          <button type="button" onclick="closeModal('modal-insert-route-stop-dialog')" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition">
+            Cancel
+          </button>
+          <button type="submit" id="btn-insert-stop-submit" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow transition flex items-center justify-center space-x-1.5 cursor-pointer">
+            <i class="fa-solid fa-plus-circle"></i>
+            <span>Insert Stop in Route</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Vehicle Timetable Viewer -->
+  <div id="modal-vehicle-timings" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[88vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <div>
+          <h3 id="modal-vehicle-title" class="font-bold text-slate-800 text-lg flex items-center">
+            <i class="fa-solid fa-bus text-emerald-600 mr-2"></i>
+            <span id="vehicle-title-text">Bus Timetable</span>
+          </h3>
+          <p id="modal-vehicle-subtitle" class="text-xs text-slate-500 font-medium mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('modal-vehicle-timings')" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="my-3 flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+        <span class="font-semibold text-slate-600"><i class="fa-solid fa-route text-emerald-600 mr-1"></i> Kannur ➔ Chemperi Corridor</span>
+        <span id="vehicle-total-stops" class="font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded">61 Stops Total</span>
+      </div>
+
+      <div class="flex-1 overflow-y-auto border border-slate-200 rounded-lg">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-100 text-slate-700 uppercase font-bold sticky top-0 border-b border-slate-200 shadow-sm">
+            <tr>
+              <th class="py-2.5 px-3">#</th>
+              <th class="py-2.5 px-3">Stop Name</th>
+              <th class="py-2.5 px-3">Distance</th>
+              <th class="py-2.5 px-3">Arrival Time</th>
+              <th class="py-2.5 px-3">Departure Time</th>
+              <th class="py-2.5 px-3 text-right">Fare (₹)</th>
+            </tr>
+          </thead>
+          <tbody id="table-vehicle-timings" class="divide-y divide-slate-100"></tbody>
+        </table>
+      </div>
+
+      <div class="pt-3 mt-3 border-t border-slate-200 flex justify-end">
+        <button onclick="closeModal('modal-vehicle-timings')" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2 rounded-lg text-xs">
+          Close Timetable
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let globalRoutesData = [];
+    let globalVehiclesData = [];
+    let globalStopsData = [];
+    let globalKsrtcData = [];
+
+    let currentRouteDetails = null;
+    let currentRouteFilter = '';
+
+    async function showRouteDetails(routeId) {
+      try {
+        const res = await fetch(`/api/admin/route-details/${routeId}`);
+        if (!res.ok) {
+          alert('Could not fetch route details.');
+          return;
+        }
+        currentRouteDetails = await res.json();
+        const route = currentRouteDetails.route;
+        const vehicles = currentRouteDetails.vehicles || [];
+        const stops = currentRouteDetails.stops || [];
+
+        document.getElementById('modal-stops-mode').innerText = route.mode || 'BUS';
+        document.getElementById('modal-stops-title').innerText = route.route_name;
+        document.getElementById('modal-stops-subtitle').innerText = `${route.start_point} ➔ ${route.end_point} • ${route.total_distance_km} km • ${stops.length} Stops Total`;
+        document.getElementById('route-stops-count-badge').innerText = `${stops.length} Stops`;
+
+        // Populate Vehicles dropdown
+        const select = document.getElementById('route-bus-select');
+        if (vehicles.length > 0) {
+          select.innerHTML = vehicles.map(v => `
+            <option value="${v.id}">${v.vehicle_name} (${v.vehicle_number}) • ${v.start_time || '06:00 AM'} - ${v.end_time || '07:35 AM'}</option>
+          `).join('');
+          select.disabled = false;
+        } else {
+          select.innerHTML = '<option value="0">No vehicles assigned to this route</option>';
+          select.disabled = true;
+        }
+
+        currentRouteFilter = '';
+        document.getElementById('route-stop-search').value = '';
+        renderRouteTimetable();
+        openModal('modal-route-stops');
+      } catch (e) {
+        console.error(e);
+        alert('Error loading route stops: ' + e.message);
+      }
+    }
+
+    function filterRouteStops(query) {
+      currentRouteFilter = (query || '').toLowerCase().trim();
+      renderRouteTimetable();
+    }
+
+    function renderRouteTimetable() {
+      if (!currentRouteDetails) return;
+      const route = currentRouteDetails.route;
+      const vehicles = currentRouteDetails.vehicles || [];
+      const stops = currentRouteDetails.stops || [];
+      const timingsMap = currentRouteDetails.timings || {};
+
+      const select = document.getElementById('route-bus-select');
+      const selectedVehicleId = parseInt(select.value) || (vehicles[0] ? vehicles[0].id : 0);
+      const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId) || vehicles[0];
+
+      if (selectedVehicle) {
+        document.getElementById('banner-bus-name').innerText = `${selectedVehicle.vehicle_name} (${selectedVehicle.vehicle_number})`;
+        document.getElementById('banner-bus-run').innerText = `Daily Run: ${selectedVehicle.start_time || '06:00 AM'} ➔ ${selectedVehicle.end_time || '07:35 AM'} (${selectedVehicle.sub_type})`;
+        document.getElementById('route-bus-schedule-banner').classList.remove('hidden');
+      } else {
+        document.getElementById('banner-bus-name').innerText = 'No Vehicle Selected';
+        document.getElementById('banner-bus-run').innerText = 'Add a vehicle to route to record timings';
+      }
+
+      const tbody = document.getElementById('modal-route-stops-tbody');
+      const filteredStops = stops.filter(s => !currentRouteFilter || s.stop_name.toLowerCase().includes(currentRouteFilter));
+
+      if (filteredStops.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-400">No stops match '${currentRouteFilter}'</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filteredStops.map((s, idx) => {
+        const isStart = s.sequence_no === 1;
+        const isEnd = s.sequence_no === stops.length;
+        const isHub = s.stop_name.includes('Taliparamba') || s.stop_name.includes('Sreekandapuram');
+
+        // Lookup timing for this vehicle and stop
+        const timingKey = `${selectedVehicleId}_${s.stop_id}`;
+        const timing = timingsMap[timingKey];
+
+        const arrTime = timing ? timing.arrival_time : (isStart ? (selectedVehicle?.start_time || '06:00 AM') : '--:--');
+        const depTime = timing ? timing.departure_time : (isStart ? (selectedVehicle?.start_time || '06:00 AM') : '--:--');
+        const fare = timing ? timing.fare_from_origin : 10.0;
+        const timingId = timing ? timing.id : 0;
+
+        let rowBg = 'hover:bg-slate-50';
+        if (isStart) rowBg = 'bg-emerald-50/50 font-medium';
+        else if (isEnd) rowBg = 'bg-red-50/50 font-medium';
+        else if (isHub) rowBg = 'bg-blue-50/30';
+
+        const escapedName = s.stop_name.replace(/'/g, "\\'");
+
+        return `
+          <tr class="${rowBg} transition">
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-slate-500">${s.sequence_no}</td>
+            <td class="py-2.5 px-3 font-semibold text-slate-800">
+              <div class="flex items-center space-x-1.5">
+                ${isStart ? '<span class="bg-green-100 text-green-800 text-[10px] px-1.5 py-0.5 rounded font-bold">Origin</span>' :
+                  isEnd ? '<span class="bg-red-100 text-red-800 text-[10px] px-1.5 py-0.5 rounded font-bold">Terminus</span>' :
+                  isHub ? '<span class="bg-blue-100 text-blue-800 text-[10px] px-1.5 py-0.5 rounded font-bold">Transit Hub</span>' : ''}
+                <span>${s.stop_name}</span>
+              </div>
+            </td>
+            <td class="py-2.5 px-3 font-mono text-slate-600">${s.distance_from_start_km !== undefined ? Number(s.distance_from_start_km).toFixed(1) + ' km' : '--'}</td>
+            <td class="py-2.5 px-3 font-mono font-bold text-blue-800">${arrTime}</td>
+            <td class="py-2.5 px-3 font-mono font-bold text-emerald-800">${depTime}</td>
+            <td class="py-2.5 px-3 font-mono font-bold text-slate-700 text-right">₹${Number(fare).toFixed(0)}</td>
+            <td class="py-2.5 px-3 text-center whitespace-nowrap">
+              <button onclick="openInsertStopModal(${s.sequence_no}, '${escapedName}')" class="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold mr-1 border border-indigo-200 shadow-sm cursor-pointer" title="Insert a new bus stop right below ${escapedName} in between">
+                <i class="fa-solid fa-plus text-indigo-600 mr-0.5"></i> + Stop Below
+              </button>
+              <button onclick="openEditStopModal(${s.stop_id || 0}, '${escapedName}', ${s.distance_from_start_km || 0}, ${s.latitude || 0}, ${s.longitude || 0})" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1 rounded font-bold mr-1 border border-amber-200 shadow-sm" title="Edit Stop Name & Distance">
+                <i class="fa-solid fa-pen mr-1 text-amber-600"></i> Edit Stop
+              </button>
+              <button onclick="openEditTimingModal(${timingId}, ${selectedVehicleId}, ${s.stop_id || 0}, '${escapedName}', '${arrTime}', '${depTime}', ${fare})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded font-bold mr-1 shadow-sm" title="Edit Arrival & Departure Time">
+                <i class="fa-solid fa-clock mr-1"></i> Edit Time
+              </button>
+              ${!isStart && !isEnd ? `
+                <button onclick="confirmRemoveRouteStop(${s.stop_id || 0}, '${escapedName}')" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-bold border border-red-200 shadow-sm" title="Remove ${escapedName} from this route">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              ` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function openEditStopModal(stopId, stopName, distKm, lat, lng) {
+      if (!stopId) {
+        alert('This stop record has not yet been assigned a database stop ID.');
+        return;
+      }
+      document.getElementById('edit-stop-id').value = stopId;
+      document.getElementById('edit-stop-route-id').value = currentRouteDetails?.route?.id || 1;
+      document.getElementById('edit-stop-name').value = stopName;
+      document.getElementById('edit-stop-dist').value = distKm;
+      document.getElementById('edit-stop-lat').value = lat;
+      document.getElementById('edit-stop-lng').value = lng;
+      openModal('modal-edit-route-stop-dialog');
+    }
+
+    async function submitEditRouteStop(event) {
+      event.preventDefault();
+      const stopId = parseInt(document.getElementById('edit-stop-id').value);
+      const routeId = parseInt(document.getElementById('edit-stop-route-id').value);
+      const stopName = document.getElementById('edit-stop-name').value.trim();
+      const distKm = parseFloat(document.getElementById('edit-stop-dist').value);
+      const lat = parseFloat(document.getElementById('edit-stop-lat').value) || null;
+      const lng = parseFloat(document.getElementById('edit-stop-lng').value) || null;
+
+      try {
+        const res = await fetch('/api/admin/edit-route-stop', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            stop_id: stopId,
+            stop_name: stopName,
+            route_id: routeId,
+            distance_from_start_km: distKm,
+            latitude: lat,
+            longitude: lng
+          })
+        });
+        const data = await res.json();
+        alert(data.message || 'Stop updated successfully!');
+        closeModal('modal-edit-route-stop-dialog');
+        await showRouteDetails(routeId);
+        loadData();
+      } catch (err) {
+        alert('Error updating stop: ' + err.message);
+      }
+    }
+
+    function openEditTimingModal(timingId, vehicleId, stopId, stopName, arrTime, depTime, fare) {
+      const select = document.getElementById('route-bus-select');
+      const selectedOptionText = select.options[select.selectedIndex]?.text || 'Selected Bus';
+
+      document.getElementById('edit-timing-id').value = timingId || 0;
+      document.getElementById('edit-timing-vehicle-id').value = vehicleId;
+      document.getElementById('edit-timing-stop-id').value = stopId;
+      document.getElementById('edit-timing-bus-label').innerText = selectedOptionText;
+      document.getElementById('edit-timing-stop-label').innerText = stopName;
+      document.getElementById('edit-timing-arr').value = arrTime !== '--:--' ? arrTime : '06:00 AM';
+      document.getElementById('edit-timing-dep').value = depTime !== '--:--' ? depTime : '06:01 AM';
+      document.getElementById('edit-timing-fare').value = Math.round(fare || 10);
+
+      openModal('modal-edit-timing-dialog');
+    }
+
+    async function submitEditTiming(event) {
+      event.preventDefault();
+      const timingId = parseInt(document.getElementById('edit-timing-id').value) || null;
+      const vehicleId = parseInt(document.getElementById('edit-timing-vehicle-id').value);
+      const stopId = parseInt(document.getElementById('edit-timing-stop-id').value);
+      const arrTime = document.getElementById('edit-timing-arr').value.trim();
+      const depTime = document.getElementById('edit-timing-dep').value.trim();
+      const fare = parseFloat(document.getElementById('edit-timing-fare').value);
+      const routeId = currentRouteDetails?.route?.id || 1;
+
+      try {
+        const res = await fetch('/api/admin/edit-timing', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            timing_id: timingId && timingId > 0 ? timingId : null,
+            vehicle_id: vehicleId,
+            stop_id: stopId,
+            arrival_time: arrTime,
+            departure_time: depTime,
+            fare_from_origin: fare
+          })
+        });
+        const data = await res.json();
+        alert(data.message || 'Timing saved into SQLite database successfully!');
+        closeModal('modal-edit-timing-dialog');
+        await showRouteDetails(routeId);
+        loadData();
+      } catch (err) {
+        alert('Error saving timing: ' + err.message);
+      }
+    }
+
+    function parseTimeToMinutes(tStr) {
+      if (!tStr || tStr === '--:--') return null;
+      const match = tStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+      if (!match) return null;
+      let hours = parseInt(match[1]);
+      const mins = parseInt(match[2]);
+      const ampm = (match[3] || 'AM').toUpperCase();
+      if (ampm === 'PM' && hours < 12) hours += 12;
+      if (ampm === 'AM' && hours === 12) hours = 0;
+      return hours * 60 + mins;
+    }
+
+    function formatMinutesToTime(totalMins) {
+      let m = Math.round(totalMins) % (24 * 60);
+      if (m < 0) m += 24 * 60;
+      let hours = Math.floor(m / 60);
+      const mins = m % 60;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      if (hours === 0) hours = 12;
+      return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${ampm}`;
+    }
+
+    function openInsertStopModal(afterSeq, stopName) {
+      if (!currentRouteDetails || !currentRouteDetails.stops) {
+        alert('Route details not loaded.');
+        return;
+      }
+
+      const route = currentRouteDetails.route;
+      const stops = currentRouteDetails.stops;
+      const routeId = route.id;
+      const vehicleSelect = document.getElementById('route-bus-select');
+      const selectedVehicleText = vehicleSelect.options[vehicleSelect.selectedIndex]?.text || 'Active Bus';
+
+      document.getElementById('insert-stop-route-id').value = routeId;
+      document.getElementById('insert-stop-route-name-badge').innerText = `${route.route_name} • ${route.start_point} ➔ ${route.end_point}`;
+      document.getElementById('insert-stop-bus-badge').innerText = selectedVehicleText;
+      document.getElementById('insert-stop-name').value = '';
+
+      // Populate Datalist with all known stops
+      const datalist = document.getElementById('insert-stops-datalist');
+      const allKnownNames = new Set();
+      (globalStopsData || []).forEach(s => allKnownNames.add(s.stop_name));
+      (stops || []).forEach(s => allKnownNames.add(s.stop_name));
+      datalist.innerHTML = Array.from(allKnownNames).sort().map(name => `<option value="${name}"></option>`).join('');
+
+      // Populate Position Dropdown
+      const posSelect = document.getElementById('insert-stop-after-seq');
+      let optionsHtml = `<option value="0">At Origin (Before #1: ${stops[0]?.stop_name || 'Start'})</option>`;
+      for (let i = 0; i < stops.length; i++) {
+        const cur = stops[i];
+        if (i < stops.length - 1) {
+          const next = stops[i + 1];
+          optionsHtml += `<option value="${cur.sequence_no}">Between #${cur.sequence_no} (${cur.stop_name}) & #${next.sequence_no} (${next.stop_name})</option>`;
+        } else {
+          optionsHtml += `<option value="${cur.sequence_no}">At Terminus (After #${cur.sequence_no}: ${cur.stop_name})</option>`;
+        }
+      }
+      posSelect.innerHTML = optionsHtml;
+
+      // Select requested sequence or default to 1
+      if (afterSeq !== undefined && afterSeq !== null) {
+        posSelect.value = String(afterSeq);
+      } else {
+        posSelect.value = stops.length > 1 ? "1" : "0";
+      }
+
+      onInsertPositionChanged();
+      openModal('modal-insert-route-stop-dialog');
+      if (insertStopMap) {
+        setTimeout(() => {
+          insertStopMap.invalidateSize();
+          updateMapForPosition();
+        }, 200);
+      }
+      setTimeout(() => document.getElementById('insert-stop-name').focus(), 150);
+    }
+
+    function onInsertPositionChanged() {
+      if (!currentRouteDetails || !currentRouteDetails.stops) return;
+      const stops = currentRouteDetails.stops;
+      const afterSeq = parseInt(document.getElementById('insert-stop-after-seq').value) || 0;
+      const vehicleSelect = document.getElementById('route-bus-select');
+      const selectedVehicleId = parseInt(vehicleSelect.value) || 0;
+      const timingsMap = currentRouteDetails.timings || {};
+
+      const prevStop = stops.find(s => s.sequence_no === afterSeq);
+      const nextStop = stops.find(s => s.sequence_no === afterSeq + 1);
+
+      let calcDist = 0.0;
+      let calcLat = 11.8745;
+      let calcLng = 75.3704;
+      let hintText = '';
+      let arrTime = '07:15 AM';
+      let depTime = '07:16 AM';
+      let fare = 10.0;
+
+      if (afterSeq === 0 && nextStop) {
+        // Inserting as new start stop
+        calcDist = 0.0;
+        calcLat = nextStop.latitude ? (nextStop.latitude - 0.005) : 11.8745;
+        calcLng = nextStop.longitude ? (nextStop.longitude - 0.005) : 75.3704;
+        hintText = `New Origin stop before #${nextStop.sequence_no} (${nextStop.stop_name})`;
+        fare = 10.0;
+        const nextTiming = timingsMap[`${selectedVehicleId}_${nextStop.stop_id}`];
+        if (nextTiming && nextTiming.arrival_time) {
+          const tMins = parseTimeToMinutes(nextTiming.arrival_time);
+          if (tMins !== null) {
+            arrTime = formatMinutesToTime(tMins - 3);
+            depTime = formatMinutesToTime(tMins - 2);
+          }
+        }
+      } else if (prevStop && nextStop) {
+        // In-between two existing stops
+        const d1 = parseFloat(prevStop.distance_from_start_km || 0);
+        const d2 = parseFloat(nextStop.distance_from_start_km || 0);
+        calcDist = Number(((d1 + d2) / 2).toFixed(1));
+        calcLat = Number((( (prevStop.latitude || 11.8745) + (nextStop.latitude || 11.8745) ) / 2).toFixed(6));
+        calcLng = Number((( (prevStop.longitude || 75.3704) + (nextStop.longitude || 75.3704) ) / 2).toFixed(6));
+        hintText = `Midpoint between #${prevStop.sequence_no} (${prevStop.stop_name}, ${d1} km) & #${nextStop.sequence_no} (${nextStop.stop_name}, ${d2} km)`;
+
+        // Timings interpolation
+        const prevTiming = timingsMap[`${selectedVehicleId}_${prevStop.stop_id}`];
+        const nextTiming = timingsMap[`${selectedVehicleId}_${nextStop.stop_id}`];
+        const t1 = prevTiming ? parseTimeToMinutes(prevTiming.departure_time || prevTiming.arrival_time) : null;
+        const t2 = nextTiming ? parseTimeToMinutes(nextTiming.arrival_time) : null;
+
+        if (t1 !== null && t2 !== null) {
+          const midT = (t1 + t2) / 2;
+          arrTime = formatMinutesToTime(midT);
+          depTime = formatMinutesToTime(midT + 0.5);
+        } else if (t1 !== null) {
+          arrTime = formatMinutesToTime(t1 + 2);
+          depTime = formatMinutesToTime(t1 + 3);
+        } else if (t2 !== null) {
+          arrTime = formatMinutesToTime(t2 - 2);
+          depTime = formatMinutesToTime(t2 - 1);
+        }
+
+        const f1 = prevTiming ? (prevTiming.fare_from_origin || 10) : 10;
+        const f2 = nextTiming ? (nextTiming.fare_from_origin || 10) : 10;
+        fare = Math.round((f1 + f2) / 2);
+      } else if (prevStop && !nextStop) {
+        // At end / new terminus
+        const d1 = parseFloat(prevStop.distance_from_start_km || 0);
+        calcDist = Number((d1 + 1.5).toFixed(1));
+        calcLat = prevStop.latitude ? (prevStop.latitude + 0.005) : 11.8745;
+        calcLng = prevStop.longitude ? (prevStop.longitude + 0.005) : 75.3704;
+        hintText = `New Terminus stop after #${prevStop.sequence_no} (${prevStop.stop_name})`;
+        const prevTiming = timingsMap[`${selectedVehicleId}_${prevStop.stop_id}`];
+        if (prevTiming && prevTiming.departure_time) {
+          const tMins = parseTimeToMinutes(prevTiming.departure_time);
+          if (tMins !== null) {
+            arrTime = formatMinutesToTime(tMins + 3);
+            depTime = formatMinutesToTime(tMins + 4);
+          }
+        }
+        fare = (prevTiming ? prevTiming.fare_from_origin : 10) + 5;
+      }
+
+      document.getElementById('insert-stop-position-hint').innerText = hintText;
+      document.getElementById('insert-stop-dist').value = calcDist;
+      document.getElementById('insert-stop-lat').value = calcLat;
+      document.getElementById('insert-stop-lng').value = calcLng;
+      document.getElementById('insert-stop-arr').value = arrTime;
+      document.getElementById('insert-stop-dep').value = depTime;
+      document.getElementById('insert-stop-fare').value = Math.max(10, Math.round(fare));
+
+      updateMapForPosition();
+    }
+
+    let insertStopMap = null;
+    let insertStopMarker = null;
+    let insertPrevMarker = null;
+    let insertNextMarker = null;
+    let insertRouteLine = null;
+
+    function initInsertStopMap() {
+      setTimeout(() => {
+        if (!insertStopMap) {
+          insertStopMap = L.map('insert-stop-map').setView([11.8745, 75.3704], 14);
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+          }).addTo(insertStopMap);
+
+          insertStopMap.on('click', async (e) => {
+            setInsertStopLocation(e.latlng.lat, e.latlng.lng, true);
+          });
+        }
+        insertStopMap.invalidateSize();
+        updateMapForPosition();
+      }, 250);
+    }
+
+    function updateMapForPosition() {
+      if (!insertStopMap || !currentRouteDetails || !currentRouteDetails.stops) return;
+      const stops = currentRouteDetails.stops;
+      const afterSeq = parseInt(document.getElementById('insert-stop-after-seq').value) || 0;
+
+      const prevStop = stops.find(s => s.sequence_no === afterSeq);
+      const nextStop = stops.find(s => s.sequence_no === afterSeq + 1);
+
+      if (insertPrevMarker) { insertStopMap.removeLayer(insertPrevMarker); insertPrevMarker = null; }
+      if (insertNextMarker) { insertStopMap.removeLayer(insertNextMarker); insertNextMarker = null; }
+      if (insertRouteLine) { insertStopMap.removeLayer(insertRouteLine); insertRouteLine = null; }
+
+      const greenIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41]
+      });
+
+      const redIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41]
+      });
+
+      let bounds = [];
+
+      if (prevStop && prevStop.latitude && prevStop.longitude) {
+        insertPrevMarker = L.marker([prevStop.latitude, prevStop.longitude], {
+          icon: greenIcon,
+          title: `Prev: ${prevStop.stop_name}`
+        }).addTo(insertStopMap).bindPopup(`<b>Stop #${prevStop.sequence_no} (Previous):</b><br>${prevStop.stop_name}<br>${prevStop.distance_from_start_km} km`);
+        bounds.push([prevStop.latitude, prevStop.longitude]);
+      }
+
+      if (nextStop && nextStop.latitude && nextStop.longitude) {
+        insertNextMarker = L.marker([nextStop.latitude, nextStop.longitude], {
+          icon: redIcon,
+          title: `Next: ${nextStop.stop_name}`
+        }).addTo(insertStopMap).bindPopup(`<b>Stop #${nextStop.sequence_no} (Next):</b><br>${nextStop.stop_name}<br>${nextStop.distance_from_start_km} km`);
+        bounds.push([nextStop.latitude, nextStop.longitude]);
+      }
+
+      if (bounds.length === 2) {
+        insertRouteLine = L.polyline(bounds, {
+          color: '#4f46e5',
+          weight: 3,
+          dashArray: '6, 8',
+          opacity: 0.8
+        }).addTo(insertStopMap);
+        insertStopMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+
+        const midLat = (bounds[0][0] + bounds[1][0]) / 2;
+        const midLng = (bounds[0][1] + bounds[1][1]) / 2;
+        setInsertStopLocation(midLat, midLng, false);
+      } else if (bounds.length === 1) {
+        insertStopMap.setView(bounds[0], 15);
+        setInsertStopLocation(bounds[0][0], bounds[0][1], false);
+      }
+    }
+
+    async function setInsertStopLocation(lat, lng, shouldGeocode) {
+      if (!insertStopMap) return;
+
+      const orangeIcon = L.icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41]
+      });
+
+      if (insertStopMarker) {
+        insertStopMarker.setLatLng([lat, lng]);
+      } else {
+        insertStopMarker = L.marker([lat, lng], {
+          icon: orangeIcon,
+          draggable: true,
+          title: "New In-Between Bus Stop"
+        }).addTo(insertStopMap);
+
+        insertStopMarker.on('dragend', async (ev) => {
+          const pos = ev.target.getLatLng();
+          setInsertStopLocation(pos.lat, pos.lng, true);
+        });
+      }
+
+      insertStopMarker.bindPopup("<b>Selected Bus Stop Location</b><br>Click map or drag to reposition").openPopup();
+
+      document.getElementById('insert-stop-lat').value = lat.toFixed(6);
+      document.getElementById('insert-stop-lng').value = lng.toFixed(6);
+
+      // Recalculate distance from origin based on coordinates
+      if (currentRouteDetails && currentRouteDetails.stops) {
+        const stops = currentRouteDetails.stops;
+        const afterSeq = parseInt(document.getElementById('insert-stop-after-seq').value) || 0;
+        const prevStop = stops.find(s => s.sequence_no === afterSeq);
+        const nextStop = stops.find(s => s.sequence_no === afterSeq + 1);
+
+        if (prevStop && nextStop) {
+          const d1 = parseFloat(prevStop.distance_from_start_km || 0);
+          const d2 = parseFloat(nextStop.distance_from_start_km || 0);
+          const distFromPrev = calcDistance(prevStop.latitude, prevStop.longitude, lat, lng);
+          const estDist = Math.min(d2, Math.max(d1, d1 + distFromPrev));
+          document.getElementById('insert-stop-dist').value = estDist.toFixed(1);
+        } else if (prevStop) {
+          const d1 = parseFloat(prevStop.distance_from_start_km || 0);
+          const distFromPrev = calcDistance(prevStop.latitude, prevStop.longitude, lat, lng);
+          document.getElementById('insert-stop-dist').value = (d1 + distFromPrev).toFixed(1);
+        }
+      }
+
+      if (shouldGeocode) {
+        try {
+          const name = await reverseGeocode(lat, lng);
+          if (name) {
+            document.getElementById('insert-stop-name').value = `${name} Bus Stop`;
+          }
+        } catch (e) {
+          console.warn("Geocoding failed:", e);
+        }
+      }
+    }
+
+    function onInsertStopNameInput(name) {
+      if (!name) return;
+      const trimmed = name.trim().toLowerCase();
+      // Check if matches an existing stop in globalStopsData
+      const match = (globalStopsData || []).find(s => s.stop_name.toLowerCase() === trimmed);
+      if (match) {
+        document.getElementById('insert-stop-lat').value = match.latitude.toFixed(6);
+        document.getElementById('insert-stop-lng').value = match.longitude.toFixed(6);
+        if (insertStopMap) {
+          setInsertStopLocation(match.latitude, match.longitude, false);
+          insertStopMap.panTo([match.latitude, match.longitude]);
+        }
+      }
+    }
+
+    function onInsertCoordsInput() {
+      const lat = parseFloat(document.getElementById('insert-stop-lat').value);
+      const lng = parseFloat(document.getElementById('insert-stop-lng').value);
+      if (!isNaN(lat) && !isNaN(lng) && insertStopMap) {
+        setInsertStopLocation(lat, lng, false);
+        insertStopMap.panTo([lat, lng]);
+      }
+    }
+
+    async function submitInsertRouteStop(event) {
+      event.preventDefault();
+      const routeId = parseInt(document.getElementById('insert-stop-route-id').value);
+      const afterSeq = parseInt(document.getElementById('insert-stop-after-seq').value);
+      const stopName = document.getElementById('insert-stop-name').value.trim();
+      const distKm = parseFloat(document.getElementById('insert-stop-dist').value);
+      const lat = parseFloat(document.getElementById('insert-stop-lat').value) || null;
+      const lng = parseFloat(document.getElementById('insert-stop-lng').value) || null;
+      const arrTime = document.getElementById('insert-stop-arr').value.trim();
+      const depTime = document.getElementById('insert-stop-dep').value.trim();
+      const fare = parseFloat(document.getElementById('insert-stop-fare').value) || 10.0;
+      const vehicleSelect = document.getElementById('route-bus-select');
+      const selectedVehicleId = parseInt(vehicleSelect.value) || null;
+
+      const submitBtn = document.getElementById('btn-insert-stop-submit');
+      const origText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Inserting Stop...';
+
+      try {
+        const res = await fetch('/api/admin/insert-route-stop', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            route_id: routeId,
+            after_sequence: afterSeq,
+            stop_name: stopName,
+            distance_from_start_km: distKm,
+            latitude: lat,
+            longitude: lng,
+            fare_from_origin: fare,
+            vehicle_id: selectedVehicleId,
+            arrival_time: arrTime,
+            departure_time: depTime
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Failed to insert stop');
+        }
+
+        alert(`Success: ${data.message}`);
+        closeModal('modal-insert-route-stop-dialog');
+        await showRouteDetails(routeId);
+        loadData();
+      } catch (err) {
+        alert('Error inserting stop: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = origText;
+      }
+    }
+
+    async function confirmRemoveRouteStop(stopId, stopName) {
+      if (!confirm(`Are you sure you want to remove '${stopName}' from this route?\nRemaining sequence numbers will automatically reorder.`)) {
+        return;
+      }
+      const routeId = currentRouteDetails?.route?.id || 1;
+      try {
+        const res = await fetch('/api/admin/remove-route-stop', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            route_id: routeId,
+            stop_id: stopId
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to remove stop');
+        alert(data.message);
+        await showRouteDetails(routeId);
+        loadData();
+      } catch (err) {
+        alert('Error removing stop: ' + err.message);
+      }
+    }
+    let routeMap, stopMap;
+    let startMarker, endMarker, stopMarker;
+    let routeLine;
+    let clickCount = 0;
+    let startCoords = null, endCoords = null;
+
+    // Helper: Haversine distance in KM
+    function calcDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return (R * c).toFixed(1);
+    }
+
+    // Helper: Reverse Geocoding with OpenStreetMap Nominatim
+    async function reverseGeocode(lat, lng) {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        return data.address.suburb || data.address.town || data.address.village || data.address.city || data.display_name.split(',')[0];
+      } catch (e) {
+        return `Location (${lat.toFixed(3)}, ${lng.toFixed(3)})`;
+      }
+    }
+
+    function initRouteMap() {
+      if (routeMap) {
+        setTimeout(() => routeMap.invalidateSize(), 200);
+        return;
+      }
+      setTimeout(() => {
+        routeMap = L.map('route-map').setView([11.95, 75.45], 10);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(routeMap);
+
+        routeMap.on('click', async (e) => {
+          const lat = e.latlng.lat;
+          const lng = e.latlng.lng;
+
+          if (clickCount % 2 === 0) {
+            // Pick Origin
+            startCoords = [lat, lng];
+            if (startMarker) routeMap.removeLayer(startMarker);
+            if (endMarker) routeMap.removeLayer(endMarker);
+            if (routeLine) routeMap.removeLayer(routeLine);
+
+            startMarker = L.marker([lat, lng], {
+              title: "Source",
+              icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41]
+              })
+            }).addTo(routeMap).bindPopup("Source / Origin").openPopup();
+
+            document.getElementById('route-start-coords').innerText = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+            const name = await reverseGeocode(lat, lng);
+            document.getElementById('new-route-start').value = name;
+            clickCount = 1;
+          } else {
+            // Pick Destination
+            endCoords = [lat, lng];
+            if (endMarker) routeMap.removeLayer(endMarker);
+
+            endMarker = L.marker([lat, lng], {
+              title: "Destination",
+              icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41]
+              })
+            }).addTo(routeMap).bindPopup("Destination").openPopup();
+
+            document.getElementById('route-end-coords').innerText = `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+            const name = await reverseGeocode(lat, lng);
+            document.getElementById('new-route-end').value = name;
+
+            // Draw route line on OSM
+            routeLine = L.polyline([startCoords, endCoords], {color: '#2563eb', weight: 4, dashArray: '5, 10'}).addTo(routeMap);
+            routeMap.fitBounds(routeLine.getBounds(), {padding: [30, 30]});
+
+            // Calculate Distance
+            const dist = calcDistance(startCoords[0], startCoords[1], endCoords[0], endCoords[1]);
+            document.getElementById('new-route-dist').value = dist;
+            document.getElementById('new-route-name').value = `${document.getElementById('new-route-start').value} - ${name} Corridor`;
+            clickCount = 0;
+          }
+        });
+      }, 200);
+    }
+
+    function initStopMap() {
+      if (stopMap) {
+        setTimeout(() => stopMap.invalidateSize(), 200);
+        return;
+      }
+      setTimeout(() => {
+        stopMap = L.map('stop-map').setView([12.0469, 75.5451], 11);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(stopMap);
+
+        stopMap.on('click', async (e) => {
+          const lat = e.latlng.lat;
+          const lng = e.latlng.lng;
+
+          if (stopMarker) stopMap.removeLayer(stopMarker);
+          stopMarker = L.marker([lat, lng], {
+            icon: L.icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png',
+              iconSize: [25, 41],
+              iconAnchor: [12, 41]
+            })
+          }).addTo(stopMap).bindPopup("Selected Bus Stop").openPopup();
+
+          document.getElementById('new-stop-lat').value = lat.toFixed(6);
+          document.getElementById('new-stop-lng').value = lng.toFixed(6);
+          const stopName = await reverseGeocode(lat, lng);
+          document.getElementById('new-stop-name').value = `${stopName} Bus Stop`;
+        });
+      }, 200);
+    }
+
+    // Modal helpers with Map Triggers
+    function openModal(id) { 
+      document.getElementById(id).classList.remove('hidden'); 
+      if (id === 'modal-add-route') initRouteMap();
+      if (id === 'modal-add-stop') initStopMap();
+      if (id === 'modal-add-bus') buildRouteCheckboxes('new-bus-routes-list', [1]);
+      if (id === 'modal-insert-route-stop-dialog') initInsertStopMap();
+    }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    // ================= AUTH LOGIC =================
+    function checkAuth() {
+      const user = localStorage.getItem('yathra_admin');
+      if (user) {
+        const parsed = JSON.parse(user);
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('current-admin-display').innerText = parsed.name || parsed.username;
+        loadData();
+      } else {
+        document.getElementById('auth-container').classList.remove('hidden');
+      }
+    }
+
+    function toggleAuth(mode) {
+      if (mode === 'login') {
+        document.getElementById('form-login').classList.remove('hidden');
+        document.getElementById('form-register').classList.add('hidden');
+        document.getElementById('tab-login-btn').className = "flex-1 py-3 text-sm font-bold text-emerald-800 border-b-2 border-emerald-700";
+        document.getElementById('tab-reg-btn').className = "flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent";
+      } else {
+        document.getElementById('form-login').classList.add('hidden');
+        document.getElementById('form-register').classList.remove('hidden');
+        document.getElementById('tab-reg-btn').className = "flex-1 py-3 text-sm font-bold text-emerald-800 border-b-2 border-emerald-700";
+        document.getElementById('tab-login-btn').className = "flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent";
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('login-user').value;
+      const password = document.getElementById('login-pass').value;
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('yathra_admin', JSON.stringify(data.admin));
+        checkAuth();
+      } else {
+        alert(data.detail || 'Login failed');
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('reg-name').value,
+        username: document.getElementById('reg-user').value,
+        password: document.getElementById('reg-pass').value,
+        email: document.getElementById('reg-email').value,
+        phone: document.getElementById('reg-phone').value
+      };
+      const res = await fetch('/api/admin/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Admin registered successfully! Please sign in.');
+        toggleAuth('login');
+        document.getElementById('login-user').value = payload.username;
+        document.getElementById('login-pass').value = payload.password;
+      } else {
+        alert(data.detail || 'Registration failed');
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem('yathra_admin');
+      checkAuth();
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('bg-emerald-800'));
+
+      const targetTab = document.getElementById('tab-' + tab);
+      if (targetTab) targetTab.classList.remove('hidden');
+      const targetBtn = document.getElementById('btn-' + tab);
+      if (targetBtn) targetBtn.classList.add('bg-emerald-800');
+
+      const titles = {'routes': 'Routes', 'buses': 'Buses & Fleet', 'ksrtc': 'Official KSRTC Timetable (Kannur Depot)'};
+      document.getElementById('view-title').innerText = titles[tab] || 'Dashboard';
+    }
+
+    // ================= SUBMIT HANDLERS =================
+    async function submitAddRoute(e) {
+      e.preventDefault();
+      const res = await fetch('/api/admin/add-route', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          route_name: document.getElementById('new-route-name').value,
+          start_point: document.getElementById('new-route-start').value,
+          end_point: document.getElementById('new-route-end').value,
+          mode: document.getElementById('new-route-mode').value,
+          total_distance_km: parseFloat(document.getElementById('new-route-dist').value)
+        })
+      });
+      const data = await res.json();
+      alert(data.message || 'Route added');
+      closeModal('modal-add-route');
+      loadData();
+    }
+
+    async function submitAddBus(e) {
+      e.preventDefault();
+      const chks = document.querySelectorAll("input[name='new-bus-routes-list-chk']:checked");
+      const routeIds = Array.from(chks).map(c => parseInt(c.value));
+      const primaryRoute = routeIds[0] || 1;
+
+      const res = await fetch('/api/admin/add-bus', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          vehicle_number: document.getElementById('new-bus-no').value.trim(),
+          vehicle_name: document.getElementById('new-bus-name').value.trim(),
+          vehicle_type: document.getElementById('new-bus-type').value,
+          sub_type: document.getElementById('new-bus-tier').value.trim(),
+          current_route_id: primaryRoute,
+          route_ids: routeIds
+        })
+      });
+      const data = await res.json();
+      alert(data.message || data.detail);
+      closeModal('modal-add-bus');
+      loadData();
+    }
+
+    async function submitAddStop(e) {
+      e.preventDefault();
+      const res = await fetch('/api/admin/add-stop', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          stop_name: document.getElementById('new-stop-name').value,
+          latitude: parseFloat(document.getElementById('new-stop-lat').value),
+          longitude: parseFloat(document.getElementById('new-stop-lng').value)
+        })
+      });
+      const data = await res.json();
+      alert(data.message || data.detail);
+      closeModal('modal-add-stop');
+      loadData();
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/admin/data');
+        const data = await res.json();
+        globalRoutesData = data.routes || [];
+        globalVehiclesData = data.vehicles || [];
+        globalStopsData = data.stops || [];
+
+        // Routes
+        document.getElementById('table-routes').innerHTML = data.routes.map(r => `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4 font-mono font-bold text-slate-800">${r.id}</td>
+            <td onclick="showRouteDetails(${r.id})" class="py-3 px-4 font-bold text-blue-700 hover:underline cursor-pointer flex items-center">
+              <i class="fa-solid fa-route mr-2 text-blue-500"></i> ${r.route_name}
+            </td>
+            <td class="py-3 px-4">${r.start_point}</td>
+            <td class="py-3 px-4">${r.end_point}</td>
+            <td class="py-3 px-4"><span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-1 rounded-full font-bold">${r.mode}</span></td>
+            <td class="py-3 px-4 font-bold text-slate-800">${r.total_distance_km} km</td>
+            <td class="py-3 px-4 text-center">
+              <button onclick="editRoutePrompt(${r.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded mr-1 font-semibold" title="Edit Route in Database">
+                <i class="fa-solid fa-pen-to-square text-blue-600"></i> Edit
+              </button>
+              <button onclick="deleteRouteItem(${r.id})" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-semibold" title="Delete Route">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+
+        // Buses
+        document.getElementById('table-buses').innerHTML = data.vehicles.map(v => {
+          const assigned = v.assigned_routes || [];
+          const routesBadgeHtml = assigned.length > 0 ?
+            assigned.map(r => `
+              <span class="inline-flex items-center text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full mr-1 mb-1" title="${r.route_name}">
+                #${r.id} ${r.route_name.split(' ')[0]}
+              </span>
+            `).join('') :
+            `<span class="text-xs text-slate-400 italic">Route #${v.current_route_id || 1}</span>`;
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-2.5 px-4 font-mono font-bold text-slate-800">${v.vehicle_number}</td>
+              <td class="py-2.5 px-4 font-medium text-slate-900">${v.vehicle_name}</td>
+              <td class="py-2.5 px-4"><span class="bg-slate-100 text-slate-700 text-xs px-2 py-0.5 rounded font-medium">${v.vehicle_type}</span></td>
+              <td class="py-2.5 px-4 text-xs font-semibold text-slate-600">${v.sub_type}</td>
+              <td class="py-2.5 px-4">
+                <div class="flex flex-wrap max-w-xs mb-1">
+                  ${routesBadgeHtml}
+                </div>
+                <button onclick="openAssignRoutesModal(${v.id})" class="text-[11px] text-blue-600 hover:text-blue-800 font-bold flex items-center">
+                  <i class="fa-solid fa-route mr-1"></i> ${assigned.length > 1 ? `${assigned.length} Routes Assigned` : 'Assign Routes'}
+                </button>
+              </td>
+              <td class="py-2.5 px-4">
+                ${v.start_time ? `
+                  <div class="flex items-center text-xs space-x-1.5 font-mono">
+                    <span class="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-200">${v.start_time}</span>
+                    <span class="text-slate-400">➔</span>
+                    <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold border border-blue-200">${v.end_time}</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 mt-0.5">${v.start_stop || 'Kannur'} ➔ ${v.end_stop || 'Chemperi'} (${v.stop_count || 61} stops)</div>
+                ` : '<span class="text-xs text-slate-400 italic">Not scheduled</span>'}
+              </td>
+              <td class="py-2.5 px-4 text-center whitespace-nowrap">
+                <button onclick="openAssignRoutesModal(${v.id})" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-2.5 py-1 rounded mr-1 font-bold border border-blue-200 shadow-sm" title="Edit Route Assignments (Assign to multiple routes)">
+                  <i class="fa-solid fa-route mr-1 text-blue-600"></i> Routes
+                </button>
+                <button onclick="showVehicleTimings(${v.id})" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded mr-1 font-bold shadow-sm" title="View Stop-by-Stop Departure & Arrival Timetable">
+                  <i class="fa-solid fa-clock mr-1"></i> Timetable
+                </button>
+                <button onclick="openEditBusModal(${v.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded mr-1 font-semibold" title="Edit Bus Details & Routes">
+                  <i class="fa-solid fa-pen-to-square text-emerald-600"></i> Edit
+                </button>
+                <button onclick="deleteBusItem(${v.id})" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-semibold" title="Delete Bus">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Stops (Includes all 61 verified stops!)
+        const tableStops = document.getElementById('table-stops');
+        if (tableStops) {
+          tableStops.innerHTML = data.stops.map(s => `
+            <tr class="hover:bg-slate-50">
+              <td class="py-2 px-4 font-mono text-xs">${s.id}</td>
+              <td class="py-2 px-4 font-bold text-slate-800">${s.stop_name}</td>
+              <td class="py-2 px-4 font-mono text-xs text-slate-500">${s.latitude.toFixed(4)}</td>
+              <td class="py-2 px-4 font-mono text-xs text-slate-500">${s.longitude.toFixed(4)}</td>
+              <td class="py-2 px-4 text-center">
+                <button onclick="editStopPrompt(${s.id})" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded mr-1 font-semibold">
+                  <i class="fa-solid fa-pen-to-square text-amber-600"></i> Edit
+                </button>
+                <button onclick="deleteStopItem(${s.id})" class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-0.5 rounded font-semibold">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        // KSRTC Kannur Schedules (96 Services from Official Google Sheet)
+        globalKsrtcData = data.ksrtc_schedules || [];
+        if (!globalKsrtcData || globalKsrtcData.length === 0) {
+          try {
+            const ksrtcRes = await fetch('/api/ksrtc-kannur/schedules');
+            const ksrtcJson = await ksrtcRes.json();
+            globalKsrtcData = ksrtcJson.schedules || [];
+          } catch (err) {
+            console.error('Error fetching KSRTC schedules fallback:', err);
+          }
+        }
+        renderKsrtcTable(globalKsrtcData);
+        const kCount = globalKsrtcData.length || 96;
+        const navBadge = document.getElementById('badge-ksrtc-nav');
+        if (navBadge) navBadge.innerText = kCount;
+        const statTotal = document.getElementById('ksrtc-stat-total');
+        if (statTotal) statTotal.innerText = `${kCount} Services`;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function getCategoryBadge(cat) {
+      if (!cat) cat = 'Regional';
+      const c = cat.toLowerCase();
+      if (c.includes('super fast')) {
+        return `<span class="bg-red-100 text-red-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-red-200"><i class="fa-solid fa-bolt mr-1"></i>Super Fast</span>`;
+      } else if (c.includes('fast')) {
+        return `<span class="bg-amber-100 text-amber-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-amber-200"><i class="fa-solid fa-gauge-high mr-1"></i>Fast Passenger</span>`;
+      } else if (c.includes('interstate')) {
+        return `<span class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-blue-200"><i class="fa-solid fa-plane-departure mr-1"></i>Interstate</span>`;
+      } else if (c.includes('southbound')) {
+        return `<span class="bg-purple-100 text-purple-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-purple-200"><i class="fa-solid fa-arrow-down-long mr-1"></i>Southbound</span>`;
+      } else if (c.includes('feeder')) {
+        return `<span class="bg-teal-100 text-teal-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-teal-200"><i class="fa-solid fa-code-branch mr-1"></i>Regional Feeder</span>`;
+      } else if (c.includes('pilgrim')) {
+        return `<span class="bg-yellow-100 text-yellow-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-yellow-200"><i class="fa-solid fa-place-of-worship mr-1"></i>Pilgrim / Local</span>`;
+      } else {
+        return `<span class="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full border border-emerald-200"><i class="fa-solid fa-bus mr-1"></i>Regional</span>`;
+      }
+    }
+
+    function renderKsrtcTable(schedules) {
+      const tbody = document.getElementById('table-ksrtc');
+      if (!tbody) return;
+      if (!schedules || schedules.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400 italic">No KSRTC schedules found matching filter.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = schedules.map((s, idx) => {
+        const catBadge = getCategoryBadge(s.category);
+        const viaList = Array.isArray(s.via_stops) ? s.via_stops.join(', ') : (s.via_stops || 'Direct Route');
+        return `
+          <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-xs">
+            <td class="py-3 px-3 text-center font-mono font-bold text-slate-500">${s.sl_no || (idx + 1)}</td>
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-900">${s.bus_name || 'KSRTC'}</div>
+              <div class="mt-1">${catBadge}</div>
+              <div class="font-mono text-[10px] text-slate-400 mt-0.5">${s.bus_number || 'KL-15-KSRTC'}</div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-block border border-emerald-200">${s.departure_time || 'Daily'}</div>
+              <div class="text-[10px] text-slate-500 mt-0.5">Kannur Central Hub</div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-900 flex items-center">
+                <i class="fa-solid fa-location-dot text-red-500 mr-1.5 text-xs"></i>
+                ${s.destination || 'Kerala Corridor'}
+              </div>
+              <div class="font-mono text-[11px] text-slate-500 mt-0.5">Arr: ${s.arrival_time || '~'}</div>
+            </td>
+            <td class="py-3 px-4 font-mono font-medium text-slate-700">${s.duration || '~'}</td>
+            <td class="py-3 px-4 max-w-xs text-slate-600 truncate" title="${viaList}">${viaList}</td>
+            <td class="py-3 px-3 text-center font-bold text-emerald-700">₹${s.fare || 25}</td>
+            <td class="py-3 px-3 text-center font-semibold text-slate-600">${s.distance_km ? s.distance_km + ' km' : '~'}</td>
+            <td class="py-3 px-3 text-center">
+              <span class="inline-flex items-center text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full" title="Active in Yathra trip planner">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1"></span> Live Active
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      const countEl = document.getElementById('ksrtc-filtered-count');
+      if (countEl) countEl.innerText = `${schedules.length} of ${globalKsrtcData.length} Services`;
+    }
+
+    function filterKsrtcTable() {
+      const q = (document.getElementById('ksrtc-search-input')?.value || '').toLowerCase().trim();
+      const cat = (document.getElementById('ksrtc-category-filter')?.value || 'all').toLowerCase();
+
+      const filtered = globalKsrtcData.filter(s => {
+        const matchCat = cat === 'all' || (s.category && s.category.toLowerCase().includes(cat));
+        if (!matchCat) return false;
+        if (!q) return true;
+        const dest = (s.destination || '').toLowerCase();
+        const name = (s.bus_name || '').toLowerCase();
+        const no = (s.bus_number || '').toLowerCase();
+        const cName = (s.category || '').toLowerCase();
+        const vias = Array.isArray(s.via_stops) ? s.via_stops.join(' ').toLowerCase() : (s.via_stops || '').toLowerCase();
+        const sl = String(s.sl_no || '');
+        return dest.includes(q) || name.includes(q) || no.includes(q) || cName.includes(q) || vias.includes(q) || sl.includes(q);
+      });
+      renderKsrtcTable(filtered);
+    }
+
+    // Direct Database Editing Handlers
+    async function editRoutePrompt(id) {
+      const route = globalRoutesData.find(r => r.id === id);
+      if (!route) return;
+      const newName = prompt('Edit Route Name:', route.route_name);
+      if (!newName) return;
+      const newDist = prompt('Edit Distance (km):', route.total_distance_km);
+      if (!newDist) return;
+
+      const res = await fetch('/api/admin/edit-route', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          id: id,
+          route_name: newName,
+          start_point: route.start_point,
+          end_point: route.end_point,
+          mode: route.mode,
+          total_distance_km: parseFloat(newDist)
+        })
+      });
+      const data = await res.json();
+      alert(data.message || 'Route updated in SQLite database!');
+      loadData();
+    }
+
+    async function deleteRouteItem(id) {
+      if (!confirm('Are you sure you want to delete this route from the database?')) return;
+      await fetch(`/api/admin/delete-route/${id}`, { method: 'DELETE' });
+      loadData();
+    }
+
+    function buildRouteCheckboxes(containerId, selectedIds = []) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      if (!globalRoutesData || globalRoutesData.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 py-2">No routes available.</p>';
+        return;
+      }
+      const selectedSet = new Set((selectedIds || []).map(Number));
+      container.innerHTML = globalRoutesData.map(r => {
+        const isChecked = selectedSet.has(Number(r.id));
+        return `
+          <label class="flex items-center space-x-2.5 p-2 bg-white rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/30 cursor-pointer transition">
+            <input type="checkbox" name="${containerId}-chk" value="${r.id}" ${isChecked ? 'checked' : ''} class="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center space-x-2">
+                <span class="font-mono font-bold text-slate-800 text-xs">#${r.id}</span>
+                <span class="font-bold text-slate-800 text-xs truncate">${r.route_name}</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.2 bg-blue-100 text-blue-800 rounded">${r.mode}</span>
+              </div>
+              <div class="text-[11px] text-slate-500 truncate">${r.start_point} ➔ ${r.end_point} (${r.total_distance_km} km)</div>
+            </div>
+          </label>
+        `;
+      }).join('');
+    }
+
+    function openAssignRoutesModal(vehicleId) {
+      const v = (globalVehiclesData || []).find(item => item.id === vehicleId);
+      if (!v) {
+        alert('Vehicle not found.');
+        return;
+      }
+      document.getElementById('assign-routes-vehicle-id').value = vehicleId;
+      document.getElementById('assign-routes-vehicle-label').innerText = `${v.vehicle_name} (${v.vehicle_number}) • ${v.sub_type}`;
+      
+      const currentRouteIds = v.route_ids && v.route_ids.length > 0 ? v.route_ids : (v.current_route_id ? [v.current_route_id] : []);
+      buildRouteCheckboxes('assign-routes-list', currentRouteIds);
+      openModal('modal-assign-routes');
+    }
+
+    function toggleAllAssignRoutes(select) {
+      const chks = document.querySelectorAll("input[name='assign-routes-list-chk']");
+      chks.forEach(c => c.checked = !!select);
+    }
+
+    async function submitAssignRoutes() {
+      const vehicleId = parseInt(document.getElementById('assign-routes-vehicle-id').value);
+      if (!vehicleId) return;
+      const chks = document.querySelectorAll("input[name='assign-routes-list-chk']:checked");
+      const routeIds = Array.from(chks).map(c => parseInt(c.value));
+
+      if (routeIds.length === 0) {
+        if (!confirm('No routes selected! This will unassign the vehicle from all routes. Proceed?')) {
+          return;
+        }
+      }
+
+      try {
+        const res = await fetch('/api/admin/assign-vehicle-routes', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            vehicle_id: vehicleId,
+            route_ids: routeIds
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || 'Routes assigned successfully!');
+          closeModal('modal-assign-routes');
+          loadData();
+        } else {
+          alert(data.detail || 'Failed to assign routes.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error assigning routes: ' + err.message);
+      }
+    }
+
+    function openEditBusModal(vehicleId) {
+      const v = (globalVehiclesData || []).find(item => item.id === vehicleId);
+      if (!v) {
+        alert('Vehicle not found.');
+        return;
+      }
+      document.getElementById('edit-bus-id').value = v.id;
+      document.getElementById('edit-bus-no').value = v.vehicle_number;
+      document.getElementById('edit-bus-name').value = v.vehicle_name;
+      document.getElementById('edit-bus-type').value = v.vehicle_type || 'Bus';
+      document.getElementById('edit-bus-tier').value = v.sub_type || 'Private Bus';
+
+      const currentRouteIds = v.route_ids && v.route_ids.length > 0 ? v.route_ids : (v.current_route_id ? [v.current_route_id] : []);
+      buildRouteCheckboxes('edit-bus-routes-list', currentRouteIds);
+      openModal('modal-edit-bus');
+    }
+
+    async function submitEditBus(e) {
+      e.preventDefault();
+      const vehicleId = parseInt(document.getElementById('edit-bus-id').value);
+      const chks = document.querySelectorAll("input[name='edit-bus-routes-list-chk']:checked");
+      const routeIds = Array.from(chks).map(c => parseInt(c.value));
+      const primaryRoute = routeIds[0] || 1;
+
+      try {
+        const res = await fetch('/api/admin/edit-bus', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            id: vehicleId,
+            vehicle_number: document.getElementById('edit-bus-no').value.trim(),
+            vehicle_name: document.getElementById('edit-bus-name').value.trim(),
+            vehicle_type: document.getElementById('edit-bus-type').value,
+            sub_type: document.getElementById('edit-bus-tier').value.trim(),
+            current_route_id: primaryRoute,
+            route_ids: routeIds
+          })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || 'Bus details and route assignments updated!');
+          closeModal('modal-edit-bus');
+          loadData();
+        } else {
+          alert(data.detail || 'Failed to update bus.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error updating bus: ' + err.message);
+      }
+    }
+
+    function editBusPrompt(id) {
+      openEditBusModal(id);
+    }
+
+    async function deleteBusItem(id) {
+      if (!confirm('Delete bus from database?')) return;
+      await fetch(`/api/admin/delete-bus/${id}`, { method: 'DELETE' });
+      loadData();
+    }
+
+    async function editStopPrompt(id) {
+      const newName = prompt('Edit Stop Name:');
+      if (!newName) return;
+      const newLat = prompt('Edit Latitude:', '12.0469');
+      const newLng = prompt('Edit Longitude:', '75.5451');
+
+      await fetch('/api/admin/edit-stop', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          id: id,
+          stop_name: newName,
+          latitude: parseFloat(newLat),
+          longitude: parseFloat(newLng)
+        })
+      });
+      alert('Stop updated in SQLite database!');
+      loadData();
+    }
+
+    async function deleteStopItem(id) {
+      if (!confirm('Delete bus stop from database?')) return;
+      await fetch(`/api/admin/delete-stop/${id}`, { method: 'DELETE' });
+      loadData();
+    }
+
+    async function showVehicleTimings(vehicleId) {
+      try {
+        const res = await fetch(`/api/admin/vehicle-timings/${vehicleId}`);
+        if (!res.ok) {
+          alert('Could not load vehicle timings.');
+          return;
+        }
+        const data = await res.json();
+        const v = data.vehicle;
+        const timings = data.timings;
+
+        document.getElementById('vehicle-title-text').innerText = `${v.vehicle_name} (${v.vehicle_number})`;
+        document.getElementById('modal-vehicle-subtitle').innerText = `${v.sub_type} • Route #${v.current_route_id || 1}: ${v.route_name || 'Kannur - Chemperi Regional Line'}`;
+        document.getElementById('vehicle-total-stops').innerText = `${timings.length} Stops Total (48.0 km)`;
+
+        const tbody = document.getElementById('table-vehicle-timings');
+        tbody.innerHTML = timings.map((t, idx) => {
+          const isStart = idx === 0;
+          const isEnd = idx === timings.length - 1;
+          const isHub = t.stop_name.includes('Taliparamba') || t.stop_name.includes('Sreekandapuram');
+          
+          let rowBg = 'hover:bg-slate-50';
+          if (isStart) rowBg = 'bg-emerald-50/60 font-medium';
+          else if (isEnd) rowBg = 'bg-red-50/60 font-medium';
+          else if (isHub) rowBg = 'bg-blue-50/40';
+
+          return `
+            <tr class="${rowBg}">
+              <td class="py-2 px-3 font-mono font-bold text-slate-500">${t.sequence_no}</td>
+              <td class="py-2 px-3 font-semibold text-slate-800 flex items-center">
+                ${isStart ? '<i class="fa-solid fa-circle-dot text-emerald-600 mr-1.5 text-[10px]"></i>' : isEnd ? '<i class="fa-solid fa-flag-checkered text-red-600 mr-1.5 text-[10px]"></i>' : isHub ? '<i class="fa-solid fa-landmark text-blue-600 mr-1.5 text-[10px]"></i>' : ''}
+                ${t.stop_name}
+              </td>
+              <td class="py-2 px-3 font-mono text-slate-500">${t.distance_km.toFixed(1)} km</td>
+              <td class="py-2 px-3 font-mono font-bold text-blue-800">${t.arrival_time}</td>
+              <td class="py-2 px-3 font-mono font-bold text-emerald-800">${t.departure_time}</td>
+              <td class="py-2 px-3 font-mono font-bold text-slate-700 text-right">₹${t.fare_from_origin.toFixed(0)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        openModal('modal-vehicle-timings');
+      } catch (err) {
+        console.error(err);
+        alert('Error loading timings: ' + err.message);
+      }
+    }
+
+    window.onload = checkAuth;
+  </script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+Sl No.,Departure Time (Kannur),Destination,Estimated Arrival Time,Approximate Duration,Key Route / Via Stops,Service Category
+1,4:30,Mangaluru,~08:00,~3h 30m,"Dharmasala, Taliparamba, Payyanur, Kanhangad, Kasaragod",Interstate
+2,4:45,Kudiyanmala,~06:30,~1h 45m,"Taliparamba, Karimbam, Sreekandapuram",Regional Feeder
+3,5:00,Kasaragod,~07:30,~2h 30m,"Taliparamba, Payyanur, Cheruvathur, Kanhangad",Regional
+4,5:20,Kasaragod,~07:50,~2h 30m,"Taliparamba, Payyanur, Kanhangad",Regional
+5,5:30,Kudiyanmala,~07:15,~1h 45m,"Taliparamba, Sreekandapuram",Regional Feeder
+6,5:30,Iritty,~06:50,~1h 20m,"Eachur, Chalode, Mattannur",Regional
+7,5:30,Thrissur,~11:00,~5h 30m,"Thalassery, Vadakara, Kozhikode, Edappal, Kunnamkulam",Southbound
+8,5:40,Kanhangad,~07:20,~1h 40m,"Taliparamba, Payyanur, Nileshwaram",Regional
+9,5:50,Ernakulam,~13:00,~7h 10m,"Kozhikode, Thrissur, Chalakudy, Angamaly, Aluva",Southbound
+10,5:50,Iritty,~07:10,~1h 20m,"Eachur, Mattannur",Regional
+11,5:55,Balussery,~08:00,~2h 05m,"Koothuparamba, Perambra",Regional
+12,6:00,Kasaragod,~08:30,~2h 30m,"Taliparamba, Payyanur, Kanhangad",Regional
+13,6:00,Parassinikkadavu,~06:45,~0h 45m,"Puthiyangadi, Dharmasala",Local / Pilgrim
+14,6:00,Virajpet,~08:45,~2h 45m,"Mattannur, Iritty, Kootupuzha, Makutta Ghat",Interstate
+15,6:05,Kudiyanmala,~07:50,~1h 45m,"Taliparamba, Sreekandapuram",Regional Feeder
+16,6:05,Mayyil,~06:50,~0h 45m,"Eachur, Chelora, Kolacherry",Local
+17,6:05,Payyanur,~07:15,~1h 10m,"Dharmasala, Taliparamba, Pilathara",Regional
+18,6:20,Cherupuzha,~08:20,~2h 00m,"Taliparamba, Alakode, Udayagiri",Regional Feeder
+19,6:25,Kasaragod,~08:55,~2h 30m,"Payyanur, Kanhangad",Regional
+20,6:25,Kudiyanmala,~08:10,~1h 45m,"Taliparamba, Sreekandapuram",Regional Feeder
+21,6:30,Thrissur,~12:00,~5h 30m,"Thalassery, Kozhikode, Kunnamkulam",Southbound
+22,6:30,Kanhangad,~08:10,~1h 40m,"Taliparamba, Payyanur",Regional
+23,6:30,Iritty - Aralam,~08:15,~1h 45m,"Chalode, Mattannur, Iritty, Eden",Regional Feeder
+24,6:40,Therandi,~07:30,~0h 50m,Local route,Local
+25,6:40,Varamkadavu,~07:20,~0h 40m,Varam,Local
+26,6:45,Mananthavady,~09:30,~2h 45m,"Koothuparamba, Nedumpoil, Periya Ghat",Wayanad / Hill
+27,6:50,Thrissur,~12:20,~5h 30m,"Kozhikode, Edappal",Southbound
+28,6:50,Kasaragod,~09:20,~2h 30m,"Payyanur, Kanhangad",Regional
+29,6:50,Payyanur,~08:00,~1h 10m,"Dharmasala, Taliparamba",Regional
+30,6:55,Iritty,~08:15,~1h 20m,Mattannur,Regional
+31,7:00,Mayyil,~07:45,~0h 45m,Kolacherry,Local
+32,7:00,Thiruvananthapuram,~19:30,~12h 30m,"Kozhikode, Thrissur, Ernakulam, Alappuzha, Kollam",Southbound Long Distance
+33,7:02,Mananthavady,~09:45,~2h 43m,"Nedumpoil, Periya Ghat",Wayanad / Hill
+34,7:05,Kasaragod,~09:35,~2h 30m,"Payyanur, Kanhangad",Regional
+35,7:08,Kasaragod,~09:38,~2h 30m,"Payyanur, Kanhangad",Regional
+36,7:10,Paithalmala,~09:15,~2h 05m,"Taliparamba, Sreekandapuram, Kudiyanmala, Pottenplave",Tourist / Hill
+37,7:20,Mangaluru,~10:50,~3h 30m,"Payyanur, Kasaragod, Manjeshwar",Interstate
+38,7:20,Parassini - Virajpet,~10:20,~3h 00m,"Parassinikkadavu, Mattannur, Iritty",Interstate
+39,7:30,Ooty,~14:30,~7h 00m,"Mananthavady, Sultan Bathery, Gudalur",Interstate / Hill
+40,7:30,Bengaluru,~16:30,~9h 00m,"Iritty, Virajpet, Hunsur, Mysuru, Mandya",Interstate
+41,7:30,Iritty,~08:50,~1h 20m,Mattannur,Regional
+42,7:30,Mananthavady,~10:15,~2h 45m,"Nedumpoil, Periya Ghat",Wayanad / Hill
+43,7:37,Kasaragod,~10:07,~2h 30m,"Payyanur, Kanhangad",Regional
+44,7:40,Kanhangad,~09:20,~1h 40m,Payyanur,Regional
+45,8:00,Kudiyanmala,~09:45,~1h 45m,"Taliparamba, Sreekandapuram",Regional Feeder
+46,8:00,Elayavoor,~08:35,~0h 35m,Mele Chovva,Local
+47,8:10,Kanhangad,~09:50,~1h 40m,Payyanur,Regional
+48,8:40,Kanhangad,~10:20,~1h 40m,Payyanur,Regional
+49,10:00,Kudiyanmala,~11:45,~1h 45m,Sreekandapuram,Regional Feeder
+50,10:25,Iritty,~11:45,~1h 20m,Mattannur,Regional
+51,10:25,Kasaragod,~12:55,~2h 30m,"Payyanur, Kanhangad",Regional
+52,10:30,Chandanakampara,~12:15,~1h 45m,"Chalode, Irikkur, Payyavoor",Regional Feeder
+53,10:40,Cherupuzha,~12:40,~2h 00m,"Taliparamba, Alakode",Regional Feeder
+54,10:50,Iritty,~12:10,~1h 20m,Mattannur,Regional
+55,11:10,Mysuru,~16:40,~5h 30m,"Iritty, Gonikoppa, Hunsur",Interstate
+56,11:10,Koothuparamba,~12:00,~0h 50m,"Chala, Kadachira",Regional
+57,11:20,Iritty,~12:40,~1h 20m,Mattannur,Regional
+58,11:30,Iritty,~12:50,~1h 20m,Mattannur,Regional
+59,11:30,Valiyavelicham,~12:30,~1h 00m,Koothuparamba,Regional
+60,11:30,Mananthavady,~14:15,~2h 45m,"Nedumpoil, Periya Ghat",Wayanad / Hill
+61,11:40,Kanhangad,~13:20,~1h 40m,Payyanur,Regional
+62,11:45,Iritty,~13:05,~1h 20m,Mattannur,Regional
+63,12:00,Payyavoor,~13:30,~1h 30m,Sreekandapuram,Regional Feeder
+64,12:10,Payyavoor,~13:40,~1h 30m,Sreekandapuram,Regional Feeder
+65,12:10,Mananthavady,~14:55,~2h 45m,Nedumpoil Ghat,Wayanad / Hill
+66,12:15,Mattannur (Airport),~13:10,~0h 55m,"Eachur, Chalode",Airport / Regional
+67,12:20,Mattannur,~13:15,~0h 55m,"Eachur, Chalode",Regional
+68,12:45,Iritty,~14:05,~1h 20m,Mattannur,Regional
+69,12:45,Sreekandapuram,~14:05,~1h 20m,"Taliparamba, Karimbam",Regional
+70,12:50,Chandanakampara,~14:35,~1h 45m,Payyavoor,Regional Feeder
+71,13:00,Kudiyanmala,~14:45,~1h 45m,Sreekandapuram,Regional Feeder
+72,13:10,Iritty,~14:30,~1h 20m,Mattannur,Regional
+73,13:15,Parassinikkadavu,~14:00,~0h 45m,Dharmasala,Local / Pilgrim
+74,13:15,Koyyode,~13:55,~0h 40m,Mamba route,Local
+75,13:40,Iritty,~15:00,~1h 20m,Mattannur,Regional
+76,13:40,Chemperi,~15:15,~1h 35m,Sreekandapuram,Regional Feeder
+77,14:00,Iritty,~15:20,~1h 20m,Mattannur,Regional
+78,14:40,Mananthavady,~17:25,~2h 45m,Nedumpoil Ghat,Wayanad / Hill
+79,14:50,Iritty,~16:10,~1h 20m,Mattannur,Regional
+80,15:00,Keezhpally,~16:40,~1h 40m,"Mattannur, Iritty, Vallithode",Regional Feeder
+81,15:00,Thalassery,~15:45,~0h 45m,"Mele Chovva, Edakkad, Dharmadam",Regional
+82,15:00,Cheekkad,~16:25,~1h 25m,Irikkur / Sreekandapuram,Regional
+83,15:00,Iritty,~16:20,~1h 20m,Mattannur,Regional
+84,15:00,Kasaragod,~17:30,~2h 30m,"Payyanur, Kanhangad",Regional
+85,15:30,Kudiyanmala,~17:15,~1h 45m,Sreekandapuram,Regional Feeder
+86,15:40,Iritty,~17:00,~1h 20m,Mattannur,Regional
+87,16:00,Puducherry,~05:30 +1 day,~13h 30m,"Kozhikode, Palakkad, Coimbatore, Salem, Villupuram",Interstate Long Distance
+88,16:30,Thiruvananthapuram,~05:00 +1 day,~12h 30m,"Kozhikode, Thrissur, Ernakulam, Alappuzha, Kollam",Southbound Long Distance
+89,17:10,Anjarakandy,~17:55,~0h 45m,"Chala, Mamba",Local / Feeder
+90,17:50,Iritty,~19:10,~1h 20m,Mattannur,Regional
+91,18:15,Madurai,~05:00 +1 day,~10h 45m,"Kozhikode, Palakkad, Pollachi, Palani, Dindigul",Interstate Long Distance
+92,19:00,Bengaluru,~04:00 +1 day,~9h 00m,"Iritty, Virajpet, Hunsur, Mysuru",Interstate Deluxe/Express
+93,19:30,Thiruvananthapuram,~07:30 +1 day,~12h 00m,"Kozhikode, Thrissur, Ernakulam, Kollam",Southbound Super Fast
+94,20:15,Bengaluru,~05:00 +1 day,~8h 45m,"Iritty, Gonikoppa, Mysuru",Interstate Super Deluxe
+95,21:30,Bengaluru,~06:00 +1 day,~8h 30m,"Iritty, Virajpet, Mysuru",Interstate Sleeper/Deluxe
+96,22:00,Ernakulam,~05:00 +1 day,~7h 00m,"Kozhikode, Thrissur, Angamaly, Aluva",Southbound Overnight
