@@ -348,17 +348,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Top App Badge
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: primaryBlue.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6)),
-                    ],
+                // Top App Badge (Long press allows advanced server config if needed)
+                GestureDetector(
+                  onLongPress: _showServerIpDialog,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: primaryBlue.withValues(alpha: 0.15), blurRadius: 16, offset: const Offset(0, 6)),
+                      ],
+                    ),
+                    child: const Icon(Icons.directions_bus_filled_rounded, size: 44, color: primaryBlue),
                   ),
-                  child: const Icon(Icons.directions_bus_filled_rounded, size: 44, color: primaryBlue),
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -402,7 +405,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       Padding(
                         padding: const EdgeInsets.all(22),
                         child: SizedBox(
-                          height: _isSignUp ? 640 : 380,
+                          height: _isSignUp ? 620 : 340,
                           child: TabBarView(
                             controller: _tabController,
                             children: [
@@ -415,7 +418,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 emailCtrl: _userEmailCtrl,
                                 phoneCtrl: _userPhoneCtrl,
                                 onSubmit: _handleUserAuth,
-                                demoHint: 'Demo User: user1 / pass123',
                               ),
 
                               // ── Tab 2: Bus Driver Portal Form ───────────────────────
@@ -428,7 +430,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 phoneCtrl: _driverPhoneCtrl,
                                 vehicleCtrl: _driverVehicleNoCtrl,
                                 onSubmit: _handleDriverAuth,
-                                demoHint: 'Demo Driver: driver1 / driver123',
                               ),
                             ],
                           ),
@@ -436,46 +437,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 14),
-
-                // Quick Demo Credentials & Server IP Configuration
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [
-                    ActionChip(
-                      avatar: const Icon(Icons.flash_on, size: 16, color: Colors.orange),
-                      backgroundColor: Colors.white,
-                      elevation: 2,
-                      label: Text(
-                        _tabController.index == 0 ? 'Auto-fill: user1' : 'Auto-fill: driver1',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: deepBlue),
-                      ),
-                      onPressed: () {
-                        if (_tabController.index == 0) {
-                          _userUsernameCtrl.text = 'user1';
-                          _userPasswordCtrl.text = 'pass123';
-                        } else {
-                          _driverUsernameCtrl.text = 'driver1';
-                          _driverPasswordCtrl.text = 'driver123';
-                        }
-                        setState(() {});
-                        _showSnack('Demo credentials auto-filled!');
-                      },
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.wifi, size: 16, color: primaryBlue),
-                      backgroundColor: Colors.white,
-                      elevation: 2,
-                      label: Text(
-                        'Server: ' + (Uri.tryParse(ApiService.baseUrl)?.host ?? ApiService.baseUrl),
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryBlue),
-                      ),
-                      onPressed: _showServerIpDialog,
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -494,7 +455,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     required TextEditingController phoneCtrl,
     TextEditingController? vehicleCtrl,
     required VoidCallback onSubmit,
-    required String demoHint,
   }) {
     const primaryBlue = Color(0xFF1565C0);
     const deepBlue = Color(0xFF0D47A1);
@@ -589,8 +549,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               prefixIcon: Icon(isDriver ? Icons.drive_eta : Icons.person_outline, color: primaryBlue, size: 20),
               border: const OutlineInputBorder(),
               isDense: true,
-              helperText: !_isSignUp ? demoHint : null,
-              helperStyle: const TextStyle(fontSize: 10, color: deepBlue, fontWeight: FontWeight.w600),
             ),
           ),
           const SizedBox(height: 10),
