@@ -59,7 +59,7 @@ class _DriverScreenState extends State<DriverScreen> {
   late double _currentLat;
   late double _currentLng;
   double _currentSpeed = 35.0;
-  String _driverLocationName = 'Chalingal, Kasaragod, Kerala';
+  String _driverLocationName = 'Kannur, Kerala';
   bool _isDetectingLocation = false;
   Map<String, dynamic>? _driverWeather;
   bool _isLoadingWeather = false;
@@ -71,8 +71,8 @@ class _DriverScreenState extends State<DriverScreen> {
     _driverName = widget.driverUser?['name'] ?? 'Bus Driver';
 
     // Default to user's exact physical device coordinates at Chalingal, Kasaragod
-    _currentLat = 12.3816;
-    _currentLng = 75.1038;
+    _currentLat = 11.8745;
+    _currentLng = 75.3704;
     _detectDriverCurrentLocation();
   }
 

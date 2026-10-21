@@ -15,9 +15,8 @@ class ApiService {
       }
       return 'http://127.0.0.1:8000';
     }
-    // On physical Android phone, connect directly to the host PC's active LAN IP:
-    // (Current active host IP: 10.35.41.231, previous: 172.26.28.160)
-    return 'http://10.35.41.231:8000';
+    // On physical Android phone, connect directly to the host PC's active Wi-Fi IP:
+    return 'http://172.26.28.160:8000';
   }
 
   static void setBaseUrl(String url) {
@@ -70,7 +69,7 @@ class ApiService {
     ];
   }
 
-  static Future<Map<String, dynamic>> fetchWeather([String location = 'Chalingal, Kasaragod, Kerala', double? lat, double? lng]) async {
+  static Future<Map<String, dynamic>> fetchWeather([String location = '', double? lat, double? lng]) async {
     // 1. First attempt via backend endpoint
     try {
       String query = 'location=${Uri.encodeComponent(location)}';
@@ -90,8 +89,8 @@ class ApiService {
 
     // 2. Direct fallback to Open-Meteo API (High-reliability live meteorological data)
     try {
-      double targetLat = lat ?? 12.3816; // Chalingal default
-      double targetLng = lng ?? 75.1038;
+      double targetLat = lat ?? 11.8745; // Kannur default
+      double targetLng = lng ?? 75.3704;
       final locLower = location.toLowerCase();
       if (lat == null || lng == null) {
         if (locLower.contains('kannur')) {

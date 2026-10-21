@@ -171,9 +171,9 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     // Fallback coordinates (Chalingal / Kasaragod / Kannur hub)
     if (mounted) {
       setState(() {
-        _userLat = 12.3816;
-        _userLng = 75.1038;
-        _userLocationLabel = 'Chalingal, Kasaragod';
+        _userLat = 11.8745;
+        _userLng = 75.3704;
+        _userLocationLabel = _source.isNotEmpty ? _source : 'Kannur';
         _hasUserLocation = true;
       });
     }

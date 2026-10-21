@@ -83,9 +83,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _picker = ImagePicker();
 
   // Logged-in user physical device location for Live Weather API
-  String _userLocationName = 'Chalingal, Kasaragod, Kerala';
-  double? _userLat = 12.3816;
-  double? _userLng = 75.1038;
+  String _userLocationName = 'Kannur, Kerala';
+  double? _userLat;
+  double? _userLng;
   bool _isLoadingUserWeather = false;
 
   // Controllers for free-text source/destination inputs

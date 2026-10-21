@@ -12,7 +12,7 @@ class GoogleWeatherCard extends StatefulWidget {
   const GoogleWeatherCard({
     super.key,
     this.initialWeather,
-    this.location = 'Chalingal, Kasaragod, Kerala',
+    this.location = 'Kannur, Kerala',
     this.onClose,
     this.isModal = false,
   });
@@ -27,7 +27,7 @@ class _GoogleWeatherCardState extends State<GoogleWeatherCard> {
   bool _isCelsius = true;
   int _selectedTab = 0; // 0: Temperature, 1: Precipitation, 2: Wind
   int _selectedDayIndex = 0;
-  String _currentLocationName = 'Chalingal, Kasaragod, Kerala';
+  String _currentLocationName = 'Kannur, Kerala';
 
   @override
   void initState() {

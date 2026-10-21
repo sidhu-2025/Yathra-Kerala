@@ -2013,15 +2013,7 @@ def get_weather(location: Optional[str] = None, lat: Optional[float] = None, lng
     if final_lat is not None and final_lng is not None:
         final_lat = float(lat)
         final_lng = float(lng)
-        # Check if desktop browser reported ISP broadband gateway near Karivedakam (lat~12.47, lng~75.25)
-        # or if near Chalingal / Hosdurg / Periya / Kuniya (lat~12.35-12.42, lng~75.05-75.15)
-        is_isp_gateway = abs(final_lat - 12.473) < 0.09 and abs(final_lng - 75.258) < 0.09
-        is_near_chalingal = abs(final_lat - 12.3816) < 0.07 and abs(final_lng - 75.1038) < 0.07
-
-        if is_isp_gateway or is_near_chalingal or "chalingal" in loc_lower or "challingal" in loc_lower or "kuniya" in loc_lower or "panayal" in loc_lower:
-            final_lat, final_lng = 12.3816, 75.1038
-            loc_clean = "Chalingal, Kasaragod, Kerala"
-        elif not loc_clean:
+        if not loc_clean or loc_clean.lower() in ('current location', 'live location', ''):
             try:
                 osm_url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={final_lat}&lon={final_lng}"
                 osm_resp = requests.get(osm_url, headers={"User-Agent": "YathraKeralaApp/1.0"}, timeout=2.5)
@@ -2030,8 +2022,6 @@ def get_weather(location: Optional[str] = None, lat: Optional[float] = None, lng
                     sub = addr.get("village") or addr.get("suburb") or addr.get("town") or addr.get("hamlet") or addr.get("city")
                     distr = addr.get("county") or addr.get("state_district") or addr.get("district")
                     if sub and distr:
-                        if sub.lower() in ("challingal", "chalingal"):
-                            sub = "Chalingal"
                         loc_clean = f"{sub}, {distr.replace(' district', '')}, Kerala"
                     elif sub:
                         loc_clean = f"{sub}, Kerala"
@@ -2041,9 +2031,9 @@ def get_weather(location: Optional[str] = None, lat: Optional[float] = None, lng
                 loc_clean = f"Location ({round(final_lat, 3)}°, {round(final_lng, 3)}°)"
     else:
         # No coordinates provided; resolve by location name
-        if not loc_clean or "chalingal" in loc_lower or "challingal" in loc_lower or "kuniya" in loc_lower or "panayal" in loc_lower:
-            final_lat, final_lng = 12.3816, 75.1038
-            loc_clean = "Chalingal, Kasaragod, Kerala"
+        if not loc_clean or loc_clean.lower() in ('current location', 'live location', ''):
+            final_lat, final_lng = 11.8745, 75.3704
+            loc_clean = "Kannur, Kerala"
         elif "chemperi" in loc_lower:
             final_lat, final_lng = 12.0469, 75.5451
             loc_clean = "Chemperi, Kannur, Kerala"
