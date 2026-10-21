@@ -72,3 +72,14 @@ Future<Map<String, dynamic>?> getDeviceLocation() async {
   } catch (_) {}
   return null;
 }
+
+/// Web stubs for device settings and permissions
+Future<String> checkLocationPermission() async => 'precise';
+
+Future<String> requestLocationPermission() async => 'precise';
+
+Future<bool> isLocationServiceEnabled() async => true;
+
+Future<void> openLocationSettings() async {}
+
+Future<void> openAppSettings() async {}
