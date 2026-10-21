@@ -149,20 +149,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _detectUserLocationAndWeather() async {
     setState(() => _isLoadingUserWeather = true);
+    String detectedName = _source.isNotEmpty ? _source : 'Kannur';
     try {
       final pos = await getDeviceLocation();
-      if (pos != null) {
+      if (pos != null && pos['lat'] != null && pos['lng'] != null) {
         _userLat = (pos['lat'] as num).toDouble();
         _userLng = (pos['lng'] as num).toDouble();
+        detectedName = 'Current Location';
       } else {
-        _userLat = 12.3816;
-        _userLng = 75.1038;
+        _userLat = null;
+        _userLng = null;
       }
     } catch (_) {
-      _userLat = 12.3816;
-      _userLng = 75.1038;
+      _userLat = null;
+      _userLng = null;
     }
-    _userLocationName = 'Chalingal, Kasaragod, Kerala';
+    _userLocationName = detectedName;
 
     final weather = await ApiService.fetchWeather(_userLocationName, _userLat, _userLng);
     if (!mounted) return;
@@ -176,10 +178,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _updateWeatherForLocation([String? loc]) async {
-    // Retain user's actual physical location weather
-    if (_weather == null) {
-      await _detectUserLocationAndWeather();
-    }
+    final target = (loc != null && loc.trim().isNotEmpty) ? loc.trim() : _source;
+    if (target.isEmpty) return;
+    setState(() => _isLoadingUserWeather = true);
+    final w = await ApiService.fetchWeather(target);
+    if (!mounted) return;
+    setState(() {
+      _weather = w;
+      _userLocationName = w['location'] ?? target;
+      _isLoadingUserWeather = false;
+    });
   }
 
   /// Fetches the device GPS location and returns a human-readable place name.
@@ -602,7 +610,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshWeather() async {
     setState(() => _isLoadingUserWeather = true);
-    final weather = await ApiService.fetchWeather(_userLocationName, _userLat, _userLng);
+    final targetLoc = _source.trim().isNotEmpty ? _source.trim() : (_userLocationName.isNotEmpty ? _userLocationName : 'Kannur');
+    final weather = await ApiService.fetchWeather(targetLoc, _userLat, _userLng);
     if (mounted) {
       setState(() {
         _weather = weather;

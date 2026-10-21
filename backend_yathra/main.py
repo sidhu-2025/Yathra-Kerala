@@ -136,38 +136,113 @@ def load_db_stops_into_coords():
 
 load_db_stops_into_coords()
 
+# ---------------- Live Corridors & Simulated Fleet Telemetry ----------------
+KRITHIKA_CORRIDOR = [
+    (11.8745, 75.3704, "Kannur New Bus Stand", "Puthiyatheru"),
+    (11.9050, 75.3620, "Puthiyatheru", "Dharmasala"),
+    (11.9670, 75.3680, "Dharmasala", "Taliparamba"),
+    (12.0437, 75.3582, "Taliparamba", "Pariyaram Medical College"),
+    (12.0850, 75.3050, "Pariyaram", "Pilathara"),
+    (12.1008, 75.2014, "Payyanur Old Bus Stand", "Cheruvathur"),
+    (12.2150, 75.1580, "Cheruvathur", "Nileshwar"),
+    (12.2510, 75.1320, "Nileshwar", "Kanhangad"),
+    (12.3100, 75.0900, "Kanhangad", "Bekal Fort"),
+    (12.3920, 75.0340, "Bekal", "Kasaragod New Bus Stand"),
+    (12.4996, 74.9869, "Kasaragod", "Kannur New Bus Stand")
+]
+
+ROYAL_TRAVELS_CORRIDOR = [
+    (11.8745, 75.3704, "Kannur Old Bus Stand", "Puthiyatheru"),
+    (11.9050, 75.3620, "Puthiyatheru", "Dharmasala"),
+    (11.9670, 75.3680, "Dharmasala", "Taliparamba"),
+    (12.0437, 75.3582, "Taliparamba", "Sreekandapuram"),
+    (12.0300, 75.5200, "Sreekandapuram", "Chemperi"),
+    (12.0540, 75.5560, "Chemperi", "Kannur Old Bus Stand")
+]
+
+KSRTC_SUPERFAST_CORRIDOR = [
+    (11.8745, 75.3704, "Kannur KSRTC Depot", "Thalassery"),
+    (11.7491, 75.4890, "Thalassery New Bus Stand", "Mahe"),
+    (11.7010, 75.5340, "Mahe Bridge", "Vadakara"),
+    (11.6050, 75.5890, "Vadakara New Bus Stand", "Koyilandy"),
+    (11.4390, 75.6980, "Koyilandy", "Kozhikode KSRTC Depot"),
+    (11.2588, 75.7804, "Kozhikode KSRTC Stand", "Kannur KSRTC Depot")
+]
+
+def calculate_corridor_telemetry(stops: list, cycle_mins: float = 30.0):
+    now_secs = time.time()
+    t = (now_secs % (cycle_mins * 60)) / (cycle_mins * 60)
+    n = len(stops) - 1
+    idx = int(t * n)
+    frac = (t * n) - idx
+    lat1, lng1, curr_s, next_s = stops[idx]
+    lat2, lng2, _, _ = stops[min(idx + 1, n)]
+    curr_lat = round(lat1 + (lat2 - lat1) * frac, 6)
+    curr_lng = round(lng1 + (lng2 - lng1) * frac, 6)
+    now_str = datetime.datetime.now().strftime("%I:%M:%S %p")
+    return curr_lat, curr_lng, curr_s, next_s, now_str
+
 # Live Simulated / Driver-broadcasted vehicle tracking store
 LIVE_VEHICLES: Dict[str, Dict[str, Any]] = {
+    "KL-12-ED-5673": {
+        "vehicle_id": "KL-12-ED-5673",
+        "name": "KRITHIKA (Kannur - Kasaragod Express)",
+        "bus_name": "KRITHIKA",
+        "type": "Bus",
+        "sub_type": "Limited Stop Express",
+        "route": "Kannur -> Taliparamba -> Payyanur -> Kanhangad -> Kasaragod",
+        "lat": 12.0437,
+        "lng": 75.3582,
+        "current_stop": "Taliparamba",
+        "next_stop": "Payyanur",
+        "speed_kmh": 46.0,
+        "status": "LIVE GPS TRANSMITTING",
+        "is_active": True,
+        "driver_registered": True,
+        "has_live_gps": True,
+        "driver_name": "arun",
+        "delay_mins": 0,
+        "timestamp": 0
+    },
     "KL-13-AB-8429": {
         "vehicle_id": "KL-13-AB-8429",
         "name": "Royal Travels (Kannur - Chemperi)",
         "bus_name": "Royal Travels",
         "type": "Bus",
+        "sub_type": "Private Bus",
         "route": "Kannur -> Taliparamba -> Sreekandapuram -> Chemperi",
-        "lat": 12.38036,
-        "lng": 75.094482,
-        "current_stop": "Chalingal, Kasaragod, Kerala",
-        "next_stop": "Live Device GPS Track",
-        "speed_kmh": 35.0,
+        "lat": 12.0437,
+        "lng": 75.3582,
+        "current_stop": "Taliparamba",
+        "next_stop": "Sreekandapuram",
+        "speed_kmh": 42.0,
         "status": "LIVE GPS TRANSMITTING",
         "is_active": True,
         "driver_registered": True,
         "has_live_gps": True,
         "driver_name": "Ramesh Driver",
-        "delay_mins": 0
+        "delay_mins": 0,
+        "timestamp": 0
     },
     "KL-15-A-8199": {
         "vehicle_id": "KL-15-A-8199",
         "name": "KSRTC Super Fast (Kannur - Kozhikode)",
+        "bus_name": "KSRTC Super Fast",
         "type": "Bus",
+        "sub_type": "KSRTC Swift",
         "route": "Kannur -> Thalassery -> Vadakara -> Kozhikode",
         "lat": 11.7491,
         "lng": 75.4890,
         "current_stop": "Thalassery",
         "next_stop": "Mahe",
         "speed_kmh": 55.0,
-        "status": "ON_ROUTE",
-        "delay_mins": 5
+        "status": "LIVE GPS TRANSMITTING",
+        "is_active": True,
+        "driver_registered": True,
+        "has_live_gps": True,
+        "driver_name": "Suresh Conductor",
+        "delay_mins": 2,
+        "timestamp": 0
     },
     "TRAIN-12064": {
         "vehicle_id": "TRAIN-12064",
@@ -183,6 +258,86 @@ LIVE_VEHICLES: Dict[str, Dict[str, Any]] = {
         "delay_mins": 0
     }
 }
+
+def refresh_simulated_fleet():
+    now_ts = time.time()
+    # 1. Update Krithika (KL-12-ED-5673)
+    k_veh = LIVE_VEHICLES.get("KL-12-ED-5673")
+    if not k_veh or (now_ts - k_veh.get("timestamp", 0) > 90):
+        lat, lng, cur_s, nxt_s, now_str = calculate_corridor_telemetry(KRITHIKA_CORRIDOR, cycle_mins=35.0)
+        LIVE_VEHICLES["KL-12-ED-5673"] = {
+            "vehicle_id": "KL-12-ED-5673",
+            "name": "KRITHIKA (Kannur - Kasaragod Express)",
+            "bus_name": "KRITHIKA",
+            "type": "Bus",
+            "sub_type": "Limited Stop Express",
+            "route": "Kannur -> Taliparamba -> Payyanur -> Kanhangad -> Kasaragod",
+            "lat": lat,
+            "lng": lng,
+            "current_stop": cur_s,
+            "next_stop": nxt_s,
+            "speed_kmh": 46.0,
+            "status": "LIVE GPS TRANSMITTING",
+            "is_active": True,
+            "driver_registered": True,
+            "has_live_gps": True,
+            "driver_name": "arun",
+            "delay_mins": 0,
+            "last_updated": now_str,
+            "timestamp": 0
+        }
+    
+    # 2. Update Royal Travels (KL-13-AB-8429)
+    r_veh = LIVE_VEHICLES.get("KL-13-AB-8429")
+    if not r_veh or (now_ts - r_veh.get("timestamp", 0) > 90):
+        lat, lng, cur_s, nxt_s, now_str = calculate_corridor_telemetry(ROYAL_TRAVELS_CORRIDOR, cycle_mins=30.0)
+        LIVE_VEHICLES["KL-13-AB-8429"] = {
+            "vehicle_id": "KL-13-AB-8429",
+            "name": "Royal Travels (Kannur - Chemperi)",
+            "bus_name": "Royal Travels",
+            "type": "Bus",
+            "sub_type": "Private Bus",
+            "route": "Kannur -> Taliparamba -> Sreekandapuram -> Chemperi",
+            "lat": lat,
+            "lng": lng,
+            "current_stop": cur_s,
+            "next_stop": nxt_s,
+            "speed_kmh": 42.0,
+            "status": "LIVE GPS TRANSMITTING",
+            "is_active": True,
+            "driver_registered": True,
+            "has_live_gps": True,
+            "driver_name": "Ramesh Driver",
+            "delay_mins": 0,
+            "last_updated": now_str,
+            "timestamp": 0
+        }
+    
+    # 3. Update KSRTC Super Fast (KL-15-A-8199)
+    ks_veh = LIVE_VEHICLES.get("KL-15-A-8199")
+    if not ks_veh or (now_ts - ks_veh.get("timestamp", 0) > 90):
+        lat, lng, cur_s, nxt_s, now_str = calculate_corridor_telemetry(KSRTC_SUPERFAST_CORRIDOR, cycle_mins=40.0)
+        LIVE_VEHICLES["KL-15-A-8199"] = {
+            "vehicle_id": "KL-15-A-8199",
+            "name": "KSRTC Super Fast (Kannur - Kozhikode)",
+            "bus_name": "KSRTC Super Fast",
+            "type": "Bus",
+            "sub_type": "KSRTC Swift",
+            "route": "Kannur -> Thalassery -> Vadakara -> Kozhikode",
+            "lat": lat,
+            "lng": lng,
+            "current_stop": cur_s,
+            "next_stop": nxt_s,
+            "speed_kmh": 54.0,
+            "status": "LIVE GPS TRANSMITTING",
+            "is_active": True,
+            "driver_registered": True,
+            "has_live_gps": True,
+            "driver_name": "Suresh Conductor",
+            "delay_mins": 2,
+            "last_updated": now_str,
+            "timestamp": 0
+        }
 
 # Load Bus dataset from CSV if available
 BUS_DATABASE: List[Dict[str, Any]] = []
@@ -3508,6 +3663,7 @@ def plan_journey(
 @app.get("/api/tracking/live-vehicles")
 def get_all_live_vehicles():
     """Return all vehicles with their live or last updated location from database, prioritizing live ones"""
+    refresh_simulated_fleet()
     db_file = os.path.join(os.path.dirname(__file__), "yathrakerala.db")
     if os.path.exists(db_file):
         try:
@@ -3555,6 +3711,7 @@ def get_all_live_vehicles():
 
 @app.get("/api/tracking/{vehicle_id}")
 def get_live_tracking(vehicle_id: str):
+    refresh_simulated_fleet()
     """
     Live Vehicle Tracking Endpoint
     Returns real-time exact GPS coordinates if a driver is registered and broadcasting.

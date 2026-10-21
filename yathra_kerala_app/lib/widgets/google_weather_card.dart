@@ -39,6 +39,22 @@ class _GoogleWeatherCardState extends State<GoogleWeatherCard> {
     }
   }
 
+  @override
+  void didUpdateWidget(covariant GoogleWeatherCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialWeather != null && widget.initialWeather != oldWidget.initialWeather) {
+      setState(() {
+        _weather = widget.initialWeather!;
+        if (_weather['location'] != null && _weather['location'].toString().isNotEmpty) {
+          _currentLocationName = _weather['location'];
+        }
+      });
+    } else if (widget.location != oldWidget.location) {
+      _currentLocationName = widget.location;
+      _loadWeather();
+    }
+  }
+
   Map<String, dynamic> _defaultWeatherData() {
     return {
       'location': _currentLocationName,
@@ -91,10 +107,10 @@ class _GoogleWeatherCardState extends State<GoogleWeatherCard> {
     setState(() => _isLoading = true);
     try {
       final pos = await getDeviceLocation();
-      if (pos != null) {
+      if (pos != null && pos['lat'] != null && pos['lng'] != null) {
         final lat = (pos['lat'] as num).toDouble();
         final lng = (pos['lng'] as num).toDouble();
-        _currentLocationName = 'Chalingal, Kasaragod, Kerala';
+        _currentLocationName = 'Current Location';
         await _loadWeather(lat: lat, lng: lng);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -105,10 +121,10 @@ class _GoogleWeatherCardState extends State<GoogleWeatherCard> {
           ),
         );
       } else {
-        await _loadWeather(lat: 12.3816, lng: 75.1038);
+        await _loadWeather();
       }
     } catch (_) {
-      await _loadWeather(lat: 12.3816, lng: 75.1038);
+      await _loadWeather();
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
