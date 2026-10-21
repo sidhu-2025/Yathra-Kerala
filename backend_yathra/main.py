@@ -1041,13 +1041,38 @@ def register_user(req: UserAuthRequest):
     conn = sqlite3.connect(db_file)
     c = conn.cursor()
     try:
+        raw_vno = req.vehicle_no or "KL-13-AB-8429"
+        clean_vno = raw_vno.strip().upper()
+        role_clean = (req.role or "user").strip().lower()
+        name_clean = (req.name or "User").strip()
         c.execute("""
             INSERT INTO users (username, password, name, email, phone, role, vehicle_no)
             VALUES (?, ?, ?, ?, ?, ?, ?);
-        """, (req.username.strip(), req.password.strip(), req.name, req.email, req.phone, req.role, (req.vehicle_no or "KL-13-AB-8429").strip().toUpperCase() if hasattr(req.vehicle_no, 'toUpperCase') else (req.vehicle_no or "KL-13-AB-8429").strip().upper()))
+        """, (req.username.strip(), req.password.strip(), name_clean, req.email.strip(), req.phone.strip(), role_clean, clean_vno))
+        
+        # When a driver registers, link or initialize vehicle record in vehicles table
+        if role_clean == "driver" and clean_vno:
+            stripped_vno = clean_vno.replace("-", "").replace(" ", "")
+            v_check = c.execute("""
+                SELECT id FROM vehicles 
+                WHERE UPPER(TRIM(vehicle_number)) = ?
+                   OR REPLACE(REPLACE(UPPER(vehicle_number), '-', ''), ' ', '') = ?
+            """, (clean_vno, stripped_vno)).fetchone()
+            if not v_check:
+                c.execute("""
+                    INSERT INTO vehicles (vehicle_number, vehicle_name, vehicle_type, sub_type, is_active, last_driver_name)
+                    VALUES (?, ?, ?, ?, 0, ?)
+                """, (clean_vno, f"Bus {clean_vno}", "Bus", "Private Bus", name_clean))
+            else:
+                c.execute("""
+                    UPDATE vehicles 
+                    SET last_driver_name = ? 
+                    WHERE id = ?
+                """, (name_clean, v_check[0]))
+
         conn.commit()
         conn.close()
-        return {"status": "success", "message": f"{req.role.capitalize()} registered successfully!"}
+        return {"status": "success", "message": f"{role_clean.capitalize()} registered successfully!"}
     except sqlite3.IntegrityError:
         conn.close()
         raise HTTPException(status_code=400, detail="Username already exists!")
@@ -3703,14 +3728,18 @@ def get_all_live_vehicles():
 def get_live_tracking(vehicle_id: str):
     """
     Live Vehicle Tracking Endpoint
-    ALWAYS prioritizes REAL driver-broadcasted GPS coordinates from SQLite database first.
-    If no physical broadcast exists, falls back to live simulated corridor or train telemetry.
+    ALWAYS prioritizes REAL driver-broadcasted GPS coordinates from SQLite database and live memory.
+    If no physical broadcast exists, checks RailRadar train telemetry.
+    If driver is registered but has not transmitted coordinates, returns offline status.
+    If bus/driver is not registered on YathraKerala, returns not_registered status.
     """
     clean_vid = vehicle_id.strip().upper()
     stripped_vid = clean_vid.replace("-", "").replace(" ", "")
 
     # 1. PRIMARY: Check SQLite yathrakerala.db for REAL driver-broadcasted GPS coordinates!
     db_file = os.path.join(os.path.dirname(__file__), "yathrakerala.db")
+    driver_user = None
+    row = None
     if os.path.exists(db_file):
         try:
             conn = sqlite3.connect(db_file)
@@ -3724,8 +3753,9 @@ def get_live_tracking(vehicle_id: str):
                     UPPER(TRIM(vehicle_no)) = ?
                     OR REPLACE(REPLACE(UPPER(vehicle_no), '-', ''), ' ', '') = ?
                     OR ? LIKE '%' || UPPER(TRIM(vehicle_no)) || '%'
+                    OR UPPER(TRIM(vehicle_no)) LIKE '%' || ? || '%'
                 )
-            """, (clean_vid, stripped_vid, clean_vid)).fetchone()
+            """, (clean_vid, stripped_vid, clean_vid, clean_vid)).fetchone()
             
             row = c.execute("""
                 SELECT v.vehicle_number, v.vehicle_name, v.vehicle_type, v.sub_type,
@@ -3739,16 +3769,28 @@ def get_live_tracking(vehicle_id: str):
                    OR UPPER(v.vehicle_name) LIKE ?
                    OR ? LIKE '%' || UPPER(v.vehicle_name) || '%'
             """, (clean_vid, stripped_vid, clean_vid, f"%{clean_vid}%", clean_vid)).fetchone()
+
+            if not row and driver_user and driver_user["vehicle_no"]:
+                d_vno = driver_user["vehicle_no"].strip().upper()
+                d_vno_strip = d_vno.replace("-", "").replace(" ", "")
+                row = c.execute("""
+                    SELECT v.vehicle_number, v.vehicle_name, v.vehicle_type, v.sub_type,
+                           v.last_lat, v.last_lng, v.last_stop, v.last_next_stop,
+                           v.last_updated, v.is_active, v.last_driver_name, r.route_name
+                    FROM vehicles v
+                    LEFT JOIN routes r ON v.current_route_id = r.id
+                    WHERE UPPER(TRIM(v.vehicle_number)) = ?
+                       OR REPLACE(REPLACE(UPPER(v.vehicle_number), '-', ''), ' ', '') = ?
+                """, (d_vno, d_vno_strip)).fetchone()
             conn.close()
             
-            # If the driver has broadcasted real physical GPS coordinates (e.g. Chemperi):
+            # If the driver has broadcasted real physical GPS coordinates:
             if row and row["last_lat"] is not None and row["last_lng"] is not None:
                 real_plate = row["vehicle_number"]
                 real_name = row["vehicle_name"] or "Bus"
                 d_name = row["last_driver_name"] or (driver_user["name"] if driver_user else "Registered Driver")
                 now_str = row["last_updated"] or datetime.datetime.now().strftime("%I:%M:%S %p")
                 
-                # Keep bus active and trackable so passengers can view it even if driver switches apps
                 live_res = {
                     "vehicle_id": real_plate,
                     "name": f"{real_name} ({real_plate})",
@@ -3770,14 +3812,13 @@ def get_live_tracking(vehicle_id: str):
                     "last_updated": now_str,
                     "timestamp": time.time()
                 }
-                # Sync into memory
                 LIVE_VEHICLES[real_plate] = live_res
+                LIVE_VEHICLES[real_plate.replace("-", "").replace(" ", "")] = live_res
                 return live_res
         except Exception as e:
             print(f"Error querying DB for vehicle tracking: {e}")
 
-    # 2. SECONDARY: Check LIVE_VEHICLES in memory / corridor simulation
-    refresh_simulated_fleet()
+    # 2. SECONDARY: Check LIVE_VEHICLES in memory
     for vid, veh in LIVE_VEHICLES.items():
         v_upper = vid.strip().upper()
         v_stripped = v_upper.replace("-", "").replace(" ", "")
@@ -3799,7 +3840,7 @@ def get_live_tracking(vehicle_id: str):
                 v_copy["status"] = "LIVE GPS TRANSMITTING"
             return v_copy
 
-    # 2. Check if vehicle_id is a Train (e.g., 5-digit number or contains 'TRAIN' or 'EXP')
+    # 3. Check if vehicle_id is a Train (e.g., 5-digit number or contains 'TRAIN' or 'EXP')
     clean_id = vehicle_id.replace("TRAIN-", "").strip()
     is_train = clean_id.isdigit() and len(clean_id) >= 4 or "train" in vehicle_id.lower()
 
@@ -3825,79 +3866,21 @@ def get_live_tracking(vehicle_id: str):
             }
         except Exception as e:
             print(f"[get_live_tracking train error] {e}")
-    
-    # 3. Check SQLite yathrakerala.db for registered vehicle and driver records
-    db_file = os.path.join(os.path.dirname(__file__), "yathrakerala.db")
-    if os.path.exists(db_file):
-        try:
-            conn = sqlite3.connect(db_file)
-            conn.row_factory = sqlite3.Row
-            c = conn.cursor()
-            
-            # Check if any driver registered with this vehicle plate or plate alias
-            driver_user = c.execute("""
-                SELECT username, name, phone, vehicle_no 
-                FROM users 
-                WHERE role = 'driver' AND (
-                    UPPER(TRIM(vehicle_no)) = ?
-                    OR REPLACE(REPLACE(UPPER(vehicle_no), '-', ''), ' ', '') = ?
-                    OR ? LIKE '%' || UPPER(TRIM(vehicle_no)) || '%'
-                )
-            """, (clean_vid, stripped_vid, clean_vid)).fetchone()
-            
-            # Query vehicles table matching plate, stripped plate, or bus name (direct & reverse LIKE)
-            row = c.execute("""
-                SELECT v.vehicle_number, v.vehicle_name, v.vehicle_type, v.sub_type,
-                       v.last_lat, v.last_lng, v.last_stop, v.last_next_stop,
-                       v.last_updated, v.is_active, v.last_driver_name, r.route_name
-                FROM vehicles v
-                LEFT JOIN routes r ON v.current_route_id = r.id
-                WHERE UPPER(TRIM(v.vehicle_number)) = ?
-                   OR REPLACE(REPLACE(UPPER(v.vehicle_number), '-', ''), ' ', '') = ?
-                   OR UPPER(v.vehicle_name) = ?
-                   OR UPPER(v.vehicle_name) LIKE ?
-                   OR ? LIKE '%' || UPPER(v.vehicle_name) || '%'
-            """, (clean_vid, stripped_vid, clean_vid, f"%{clean_vid}%", clean_vid)).fetchone()
-            conn.close()
-            
-            if row and row["last_lat"] is not None and row["last_lng"] is not None:
-                real_plate = row["vehicle_number"]
-                real_name = row["vehicle_name"] or "Bus"
-                return {
-                    "vehicle_id": real_plate,
-                    "name": f"{real_name} ({real_plate})",
-                    "bus_name": real_name,
-                    "type": row["vehicle_type"] or "Bus",
-                    "sub_type": row["sub_type"] or "Private Bus",
-                    "route": row["route_name"] or "Kerala Transit Line",
-                    "lat": row["last_lat"],
-                    "lng": row["last_lng"],
-                    "current_stop": row["last_stop"] or "Registered Location",
-                    "next_stop": row["last_next_stop"] or "Live Device GPS Track",
-                    "speed_kmh": 35.0 if row["is_active"] else 0.0,
-                    "status": "LIVE GPS TRANSMITTING" if row["is_active"] else "REGISTERED (LAST REPORTED)",
-                    "is_active": True,
-                    "driver_registered": True,
-                    "has_live_gps": True,
-                    "delay_mins": 0,
-                    "driver_name": row["last_driver_name"] or (driver_user["name"] if driver_user else "Registered Driver"),
-                    "last_updated": row["last_updated"] or "Recently",
-                    "timestamp": time.time()
-                }
-            elif driver_user:
-                return {
-                    "vehicle_id": clean_vid,
-                    "status": "offline",
-                    "driver_registered": True,
-                    "is_active": False,
-                    "has_live_gps": False,
-                    "driver_name": driver_user["name"],
-                    "message": f"Driver {driver_user['name']} is registered for bus {clean_vid}, but is currently offline."
-                }
-        except Exception as e:
-            print(f"Error querying DB for vehicle tracking: {e}")
 
-    # No registered driver found for this bus - tracking is not possible!
+    # 4. If driver registered in users table or vehicles table, but has never transmitted GPS:
+    if driver_user or row:
+        driver_name = (driver_user["name"] if driver_user else (row["last_driver_name"] if row else "Driver")) or "Driver"
+        return {
+            "vehicle_id": clean_vid,
+            "status": "offline",
+            "driver_registered": True,
+            "is_active": False,
+            "has_live_gps": False,
+            "driver_name": driver_name,
+            "message": f"Driver {driver_name} is registered for bus {clean_vid}, but is currently offline."
+        }
+
+    # 5. No registered driver found for this bus - tracking is not possible!
     return {
         "status": "not_registered",
         "driver_registered": False,
@@ -3924,32 +3907,48 @@ def update_driver_location(update: DriverLocationUpdate):
     route_name = f"Exact Location: {update.current_stop}"
     now_str = datetime.datetime.now().strftime("%I:%M:%S %p")
 
+    v_stripped = v_id.replace("-", "").replace(" ", "")
     db_file = os.path.join(os.path.dirname(__file__), "yathrakerala.db")
     if os.path.exists(db_file):
         try:
             conn = sqlite3.connect(db_file)
             conn.row_factory = sqlite3.Row
             c = conn.cursor()
+
+            # Lookup real driver name from registered users if generic
+            if not update.driver_name or update.driver_name == "Bus Driver":
+                d_user = c.execute("""
+                    SELECT name FROM users 
+                    WHERE role = 'driver' AND (
+                        UPPER(TRIM(vehicle_no)) = ?
+                        OR REPLACE(REPLACE(UPPER(vehicle_no), '-', ''), ' ', '') = ?
+                    )
+                """, (v_id, v_stripped)).fetchone()
+                if d_user and d_user["name"]:
+                    driver_name = d_user["name"]
+
             row = c.execute("""
-                SELECT v.vehicle_name, v.vehicle_type, v.sub_type
+                SELECT v.id, v.vehicle_name, v.vehicle_type, v.sub_type
                 FROM vehicles v
                 WHERE UPPER(TRIM(v.vehicle_number)) = ?
-            """, (v_id,)).fetchone()
+                   OR REPLACE(REPLACE(UPPER(v.vehicle_number), '-', ''), ' ', '') = ?
+            """, (v_id, v_stripped)).fetchone()
             if row:
                 bus_name = row["vehicle_name"] or bus_name
                 bus_type = row["vehicle_type"] or bus_type
                 sub_type = row["sub_type"] or sub_type
+                v_target_id = row["id"]
 
-            # Persist last known location directly into SQLite database
-            c.execute("""
-                UPDATE vehicles
-                SET last_lat = ?, last_lng = ?, last_stop = ?, last_next_stop = ?,
-                    last_updated = ?, is_active = ?, last_driver_name = ?
-                WHERE UPPER(TRIM(vehicle_number)) = ?
-            """, (round(float(update.lat), 6), round(float(update.lng), 6),
-                  update.current_stop, update.next_stop, now_str, 1 if is_active else 0,
-                  driver_name, v_id))
-            if c.rowcount == 0:
+                # Persist last known location directly into SQLite database
+                c.execute("""
+                    UPDATE vehicles
+                    SET last_lat = ?, last_lng = ?, last_stop = ?, last_next_stop = ?,
+                        last_updated = ?, is_active = ?, last_driver_name = ?
+                    WHERE id = ?
+                """, (round(float(update.lat), 6), round(float(update.lng), 6),
+                      update.current_stop, update.next_stop, now_str, 1 if is_active else 0,
+                      driver_name, v_target_id))
+            else:
                 c.execute("""
                     INSERT INTO vehicles (vehicle_number, vehicle_name, vehicle_type, sub_type, last_lat, last_lng, last_stop, last_next_stop, last_updated, is_active, last_driver_name)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -3961,7 +3960,7 @@ def update_driver_location(update: DriverLocationUpdate):
             print(f"Error persisting vehicle location to SQLite: {e}")
 
     status_str = "LIVE GPS TRANSMITTING" if is_active else f"LAST REPORTED ({now_str})"
-    LIVE_VEHICLES[v_id] = {
+    veh_data = {
         "vehicle_id": v_id,
         "name": f"{bus_name} ({v_id})",
         "bus_name": bus_name,
@@ -3975,12 +3974,16 @@ def update_driver_location(update: DriverLocationUpdate):
         "speed_kmh": round(float(update.speed_kmh), 1),
         "status": status_str,
         "is_active": is_active,
+        "driver_registered": True,
+        "has_live_gps": True,
         "delay_mins": update.delay_mins,
         "driver_name": driver_name,
         "last_updated": now_str,
         "timestamp": time.time()
     }
-    return {"status": "success", "message": "Location updated successfully", "vehicle": LIVE_VEHICLES[v_id]}
+    LIVE_VEHICLES[v_id] = veh_data
+    LIVE_VEHICLES[v_stripped] = veh_data
+    return {"status": "success", "message": "Location updated successfully", "vehicle": veh_data}
 
 # ---------------- Intelligent AI Travel Assistant (TransitGPT / Gemini) ----------------
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
